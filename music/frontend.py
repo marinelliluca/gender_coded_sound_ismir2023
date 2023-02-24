@@ -67,19 +67,21 @@ class BlockChoi(nn.Module):
         x = self.dropout(x)
         return x
 
-class Frontend_mine(nn.Module):
+class Frontend(nn.Module):
     """
     
     # see paper Choi et al. recurrent...
     
+    NB: now passing main_dict, which contains the frontend_dict
+
     Usage example:
 
-    front_end_dict = {"list_out_channels":[64,128,128,256,256,646], 
+    frontend_dict = {"list_out_channels":[64,128,128,256,256,646], 
                   "list_kernel_sizes":[(3,3),(3,3),(3,3),(3,3),(3,3),(3,3)],
                   "list_pool_sizes":  [(4,1),(2,2),(2,2),(2,2),(2,2),(2,2)], 
                   "list_avgpool_flags":[False,False,False,False,False,True]}
 
-    conv_stack = Frontend_mine(front_end_dict)
+    conv_stack = Frontend(frontend_dict)
 
     print(conv_stack)
 
@@ -87,22 +89,24 @@ class Frontend_mine(nn.Module):
 
     print(conv_stack(torch.rand((32,1,128,1000))).shape)
     """
-    def __init__(self,front_end_dict,in_channels=1):
-        super(Frontend_mine, self).__init__()
+    def __init__(self,main_dict,in_channels=1):
+        super(Frontend, self).__init__()
         
+        frontend_dict = main_dict["frontend_dict"]
+
         #self.version = version
-        self.depth = len(front_end_dict["list_out_channels"])
+        self.depth = len(frontend_dict["list_out_channels"])
         self.spec_bn = nn.BatchNorm2d(1)
 
         # set class attributes in a for loop
         for i in range(self.depth):
             setattr(self, 
                     f"conv_block{i+1}", 
-                    BlockChoi(in_channels if i==0 else front_end_dict["list_out_channels"][i-1],
-                              front_end_dict["list_out_channels"][i],
-                              front_end_dict["list_kernel_sizes"][i],
-                              front_end_dict["list_pool_sizes"][i],
-                              front_end_dict["list_avgpool_flags"][i]))
+                    BlockChoi(in_channels if i==0 else frontend_dict["list_out_channels"][i-1],
+                              frontend_dict["list_out_channels"][i],
+                              frontend_dict["list_kernel_sizes"][i],
+                              frontend_dict["list_pool_sizes"][i],
+                              frontend_dict["list_avgpool_flags"][i]))
     
     def forward(self, inputs):
         
