@@ -13,15 +13,15 @@ from music.frontend import Frontend
 #######################
 
 # compute mel-spectrogram for the MSD model
-def compute_melspectrogram(audio_fn):
+def compute_melspectrogram(audio_fn, sr=16000, n_fft=512, hop_length=256, n_mels=96):
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        x, _ = librosa.core.load(audio_fn, sr=16000, res_type='kaiser_fast')
-        spec = librosa.core.amplitude_to_db(librosa.feature.melspectrogram(x, # type: ignore
-                                                                           sr=16000, 
-                                                                           n_fft=512, 
-                                                                           hop_length=256, 
-                                                                           n_mels=96))
+        y, _ = librosa.core.load(audio_fn, sr=16000, res_type='kaiser_fast')
+        spec = librosa.core.amplitude_to_db(librosa.feature.melspectrogram(y=y, # type: ignore
+                                                                           sr=sr, 
+                                                                           n_fft=n_fft, 
+                                                                           hop_length=hop_length, 
+                                                                           n_mels=n_mels))
     return spec
 
 # load pytorch model parameters 
