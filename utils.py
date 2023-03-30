@@ -119,10 +119,17 @@ class SoftmaxClassifier(LightningModule):
 class MultipleRegression(LightningModule):
     def __init__(self, input_dim, n_regressions):
         super().__init__()
-        self.linear = nn.Linear(input_dim, n_regressions)
+        self.bn = nn.BatchNorm1d(input_dim)
+        self.linear = nn.Linear(input_dim, 256)
+        self.linear2 = nn.Linear(256, 128)
+        self.linear3 = nn.Linear(128, n_regressions)
     
     def forward(self, x):
-        return self.linear(x)
+        x = self.bn(x)
+        x = F.relu(self.linear(x))
+        x = F.relu(self.linear2(x))
+        x = self.linear3(x)
+        return x
     
     def training_step(self, batch, batch_idx):
         x, y = batch
