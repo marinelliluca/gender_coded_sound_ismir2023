@@ -180,4 +180,4 @@ class MultipleRegressionWithSoftmax(LightningModule):
         return loss
         
     def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=1e-3, weight_decay=5e-5) # type: ignore
+        return torch.optim.AdamW(self.parameters(), lr=1e-3, weight_decay=1e-4) # type: ignore
