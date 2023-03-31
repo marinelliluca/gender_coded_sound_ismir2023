@@ -153,7 +153,7 @@ class MultipleRegressionWithSoftmax(LightningModule):
         super().__init__()
         self.linear = nn.Linear(input_dim, 128)
         self.linear2 = nn.Linear(128, n_regressions)
-        self.linear3 = nn.Linear(n_regressions, output_dim)
+        self.linear3 = nn.Linear(128, output_dim)
     
     def forward(self, x):
         x = F.relu(self.linear(x))
