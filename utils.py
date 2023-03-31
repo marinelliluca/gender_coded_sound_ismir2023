@@ -74,18 +74,28 @@ class EmbeddingsDataset(Dataset):
     
     def __getitem__(self, idx):
         return self.X[idx], self.y[idx]
+
+class EmbeddingsDataset2(Dataset):
+    def __init__(self, X, y_reg, y_cls):
+        self.X = torch.from_numpy(X).float()
+        self.y_reg = torch.from_numpy(y_reg).float()
+        self.y_cls = torch.from_numpy(y_cls).long()
+    
+    def __len__(self):
+        return self.X.shape[0]
+    
+    def __getitem__(self, idx):
+        return self.X[idx], self.y_reg[idx], self.y_cls[idx]
     
 class SoftmaxClassifier(LightningModule):
     def __init__(self, input_dim, output_dim):
         super().__init__()
-        self.bn = nn.BatchNorm1d(input_dim)
         self.fc1 = nn.Linear(input_dim, 256)
         self.fc2 = nn.Linear(256, 128)
         self.drop = nn.Dropout(0.5)
         self.fc3 = nn.Linear(128, output_dim)
         
     def forward(self, x):
-        x = self.bn(x)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.drop(x)
@@ -98,7 +108,7 @@ class SoftmaxClassifier(LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_hat = self(x)
-        loss = F.cross_entropy(y_hat, y)
+        loss = F.cross_entropy(y_hat, y) # this does softmax internally
         self.log('train_loss', loss)
         return loss
     
@@ -107,13 +117,6 @@ class SoftmaxClassifier(LightningModule):
         y_hat = self(x)
         loss = F.cross_entropy(y_hat, y)
         self.log('val_loss', loss)
-        return loss
-    
-    def test_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
-        loss = F.cross_entropy(y_hat, y)
-        self.log('test_loss', loss)
         return loss
 
 class MultipleRegression(LightningModule):
@@ -141,5 +144,40 @@ class MultipleRegression(LightningModule):
         self.log('val_loss', loss)
         return loss
     
+    def configure_optimizers(self):
+        return torch.optim.AdamW(self.parameters(), lr=1e-3, weight_decay=5e-5) # type: ignore
+
+
+class MultipleRegressionWithSoftmax(LightningModule):
+    def __init__(self, input_dim, n_regressions, output_dim):
+        super().__init__()
+        self.linear = nn.Linear(input_dim, 128)
+        self.linear2 = nn.Linear(128, n_regressions)
+        self.linear3 = nn.Linear(n_regressions, output_dim)
+    
+    def forward(self, x):
+        x = F.relu(self.linear(x))
+        x_reg = self.linear2(x)
+        x_cls = self.linear3(x)
+        return x_reg, x_cls
+    
+    def training_step(self, batch, batch_idx):
+        x, y_reg, y_cls = batch
+        y_hat1, y_hat2 = self(x)
+        loss1 = nn.MSELoss()(y_hat1, y_reg)
+        loss2 = F.cross_entropy(y_hat2, y_cls)
+        loss = loss1 + loss2
+        self.log('train_loss', loss)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        x, y_reg, y_cls = batch
+        y_hat1, y_hat2 = self(x)
+        loss1 = nn.MSELoss()(y_hat1, y_reg)
+        loss2 = F.cross_entropy(y_hat2, y_cls)
+        loss = loss1 + loss2
+        self.log('val_loss', loss)
+        return loss
+        
     def configure_optimizers(self):
         return torch.optim.AdamW(self.parameters(), lr=1e-3, weight_decay=5e-5) # type: ignore
