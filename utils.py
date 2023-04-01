@@ -154,18 +154,22 @@ class MultipleRegressionWithSoftmax(LightningModule):
         self.linear = nn.Linear(input_dim, 128)
         self.linear2 = nn.Linear(128, n_regressions)
         self.linear3 = nn.Linear(128, output_dim)
-    
+
     def forward(self, x):
         x = F.relu(self.linear(x))
         x_reg = self.linear2(x)
         x_cls = self.linear3(x)
         return x_reg, x_cls
-    
+
     def training_step(self, batch, batch_idx):
         x, y_reg, y_cls = batch
         y_hat1, y_hat2 = self(x)
+        
         loss1 = nn.MSELoss()(y_hat1, y_reg)
-        loss2 = F.cross_entropy(y_hat2, y_cls)
+        
+        # Handle missing data in the cost function
+        loss2 = F.cross_entropy(y_hat2, y_cls, ignore_index=-1)
+        
         loss = loss1 + loss2
         self.log('train_loss', loss)
         return loss
@@ -173,11 +177,15 @@ class MultipleRegressionWithSoftmax(LightningModule):
     def validation_step(self, batch, batch_idx):
         x, y_reg, y_cls = batch
         y_hat1, y_hat2 = self(x)
+        
         loss1 = nn.MSELoss()(y_hat1, y_reg)
-        loss2 = F.cross_entropy(y_hat2, y_cls)
+        
+        # Handle missing data in the cost function
+        loss2 = F.cross_entropy(y_hat2, y_cls, ignore_index=-1)
+        
         loss = loss1 + loss2
         self.log('val_loss', loss)
         return loss
-        
+
     def configure_optimizers(self):
         return torch.optim.AdamW(self.parameters(), lr=1e-3, weight_decay=1e-4) # type: ignore
