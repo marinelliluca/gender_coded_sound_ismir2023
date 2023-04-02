@@ -157,7 +157,7 @@ class MultipleRegressionWithSoftmax(LightningModule):
 
     def forward(self, x):
         x = F.relu(self.linear(x))
-        x_reg = F.sigmoid(self.linear2(x))
+        x_reg = self.linear2(x)
         x_cls = self.linear3(x)
         return x_reg, x_cls
 
@@ -188,4 +188,4 @@ class MultipleRegressionWithSoftmax(LightningModule):
         return loss
 
     def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=1e-3, weight_decay=1e-4) # type: ignore
+        return torch.optim.AdamW(self.parameters(), lr=1e-3, weight_decay=1e-5) # type: ignore
