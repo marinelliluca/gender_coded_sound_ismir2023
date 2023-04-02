@@ -65,17 +65,6 @@ class AssembleModel(nn.Module):
 ########################
 
 class EmbeddingsDataset(Dataset):
-    def __init__(self, X, y):
-        self.X = torch.from_numpy(X).float()
-        self.y = torch.from_numpy(y).long()
-        
-    def __len__(self):
-        return self.X.shape[0]
-    
-    def __getitem__(self, idx):
-        return self.X[idx], self.y[idx]
-
-class EmbeddingsDataset2(Dataset):
     def __init__(self, X, y_reg, y_cls):
         self.X = torch.from_numpy(X).float()
         self.y_reg = torch.from_numpy(y_reg).float()
