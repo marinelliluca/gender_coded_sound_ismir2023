@@ -20,9 +20,9 @@ from music.frontend import Frontend
 
 # placeholder
 
-#######################
+###################
 # MSD model utils #
-#######################
+###################
 
 # compute mel-spectrogram for the MSD model
 def compute_melspectrogram(audio_fn, sr=16000, n_fft=512, hop_length=256, n_mels=96):
@@ -60,9 +60,9 @@ class AssembleModel(nn.Module):
         return x
     
 
-########################
-# classification utils #
-########################
+#######################
+# class and reg utils #
+#######################
 
 class EmbeddingsDataset(Dataset):
     def __init__(self, X, y_reg, y_cls):
@@ -75,66 +75,6 @@ class EmbeddingsDataset(Dataset):
     
     def __getitem__(self, idx):
         return self.X[idx], self.y_reg[idx], self.y_cls[idx]
-    
-class SoftmaxClassifier(LightningModule):
-    def __init__(self, input_dim, output_dim):
-        super().__init__()
-        self.fc1 = nn.Linear(input_dim, 256)
-        self.fc2 = nn.Linear(256, 128)
-        self.drop = nn.Dropout(0.5)
-        self.fc3 = nn.Linear(128, output_dim)
-        
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.drop(x)
-        x = self.fc3(x)
-        return x
-    
-    def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=1e-3, weight_decay=1e-5) # type: ignore
-    
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
-        loss = F.cross_entropy(y_hat, y) # this does softmax internally
-        self.log('train_loss', loss)
-        return loss
-    
-    def validation_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
-        loss = F.cross_entropy(y_hat, y)
-        self.log('val_loss', loss)
-        return loss
-
-class MultipleRegression(LightningModule):
-    def __init__(self, input_dim, n_regressions):
-        super().__init__()
-        self.linear = nn.Linear(input_dim, 128)
-        self.linear2 = nn.Linear(128, n_regressions)
-    
-    def forward(self, x):
-        x = F.relu(self.linear(x))
-        x = self.linear2(x)
-        return x
-    
-    def training_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
-        loss = nn.MSELoss()(y_hat, y)
-        self.log('train_loss', loss)
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        x, y = batch
-        y_hat = self(x)
-        loss = nn.MSELoss()(y_hat, y)
-        self.log('val_loss', loss)
-        return loss
-    
-    def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=1e-3, weight_decay=5e-5) # type: ignore
 
 
 class MultipleRegressionWithSoftmax(LightningModule):

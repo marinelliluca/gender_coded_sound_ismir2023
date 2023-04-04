@@ -5,5 +5,5 @@ which: openl3
 # 'mfcc', 'msd' or 'openl3' for music, 'slow_fast' for video, 'hubert' for speech
 voice: false
 drop_non_significant: true
-repetitions: 1
+repetitions: 10
 folds: 5

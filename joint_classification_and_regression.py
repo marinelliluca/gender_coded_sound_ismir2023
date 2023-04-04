@@ -58,6 +58,8 @@ groundtruth_df.set_index("stimulus_id", inplace=True)
 emotions_and_mid_level = pd.read_csv("emotions_and_mid_level.csv")
 emotions_and_mid_level.set_index("stimulus_id", inplace=True)
 
+n_emotions = 7
+
 if drop_non_significant:
     # drop columns that are not significant based on the ANOVA test
     to_drop = [
@@ -67,6 +69,7 @@ if drop_non_significant:
         "Fast tempo/Slow tempo" # non significant differences between targets (ANOVA)
         ] 
     emotions_and_mid_level = emotions_and_mid_level.drop(columns=to_drop)
+    n_emotions -= 1 # we dropped Amusing
 
 
 ##############################
@@ -112,7 +115,7 @@ all_ps = []
 
 for _ in range(repetitions):
     
-    kf = KFold(n_splits=folds, shuffle=True)
+    kf = KFold(n_splits=folds, shuffle=True) # get a new split each time
     
     #accuracies = []
     f1s = []
@@ -185,8 +188,9 @@ all_ps = np.array(all_ps)
 
 print(f"n_classes: {n_classes}, modality: {modality}, which: {which}, voice: {voice}, repetitions: {repetitions}")
 
-#print(f"Accuracy: {np.mean(all_accuracies):.2f} ± {np.std(all_accuracies):.2f}")
-print(f"\tF1: {np.mean(all_f1s):.2f} ± {np.std(all_f1s):.2f}")
+
+# std across folds, mean across repetitions
+print(f"\tF1: {np.mean(all_f1s):.2f} ± {np.mean(np.std(all_f1s, axis=1)):.2f}")
 
 # aggregate and print r2 values, knowing that all_r2s has shape (repetitions, folds, n_regressions)
 print("\tR2:")
@@ -197,10 +201,31 @@ print("\tPearson's r:")
 for i, response in enumerate(emotions_and_mid_level.columns):
     
     # ratio of significant values with holm-sidak correction
-    is_significant = multipletests(pvals, alpha=0.05, method="holm-sidak")[0]
+    is_significant = multipletests(all_ps[:,:,i].flatten(), alpha=0.05, method="holm-sidak")[0]
     rat_sig = np.sum(is_significant) / len(is_significant)
 
     print(f"\t\t{response}: {np.mean(all_pearsons[:, :, i]):.2f} ± {np.std(all_pearsons[:, :, i]):.2f} (ratio significant: {rat_sig:.2f})")
 
 
+# across the emotion responses
+mean_emo_r2 = np.mean(all_r2s[:,:,:n_emotions])
+# std across folds and repetitions, mean across emotions
+std_emo_r2 = np.mean(np.std(all_r2s[:,:,:n_emotions], axis=(0,1))) 
+
+mean_emo_pears = np.mean(all_pearsons[:,:,:n_emotions])
+std_emo_pears = np.mean(np.std(all_pearsons[:,:,:n_emotions], axis=(0,1)))
+
+# across the mid-level responses
+mean_mid_r2 = np.mean(all_r2s[:,:,n_emotions:])
+std_mid_r2 = np.mean(np.std(all_r2s[:,:,n_emotions:], axis=(0,1)))
+
+mean_mid_pears = np.mean(all_pearsons[:,:,n_emotions:])
+std_mid_pears = np.mean(np.std(all_pearsons[:,:,n_emotions:], axis=(0,1)))
+
+print(f"Average R2 for emotion responses: {mean_emo_r2:.2f} ± {std_emo_r2:.2f}")
+print(f"Average Pearson's r for emotion responses: {mean_emo_pears:.2f} ± {std_emo_pears:.2f}")
+
+# across the mid-level responses
+print(f"Average R2 for mid-level responses: {mean_mid_r2:.2f} ± {std_mid_r2:.2f}")
+print(f"Average Pearson's r for mid-level responses: {mean_mid_pears:.2f} ± {std_mid_pears:.2f}")
 
