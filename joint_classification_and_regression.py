@@ -47,7 +47,10 @@ embedding_dimensions = {
     }
 }
 
-# load ground truth
+#####################
+# Load ground truth #
+#####################
+
 groundtruth_df = pd.read_csv("groundtruth_merged.csv")
 groundtruth_df.set_index("stimulus_id", inplace=True)
 
@@ -111,7 +114,7 @@ for _ in range(repetitions):
     
     kf = KFold(n_splits=folds, shuffle=True)
     
-    accuracies = []
+    #accuracies = []
     f1s = []
     r2s = []
     pearsons = []
