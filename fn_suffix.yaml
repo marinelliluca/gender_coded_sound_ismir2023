@@ -1,0 +1,11 @@
+music:
+  mfcc: ''
+  msd: _backend
+  openl3: _music
+  # '_music' or '_env'
+video:
+  slow_fast: _slow
+  # '_slow' or '_fast'
+speech:
+  hubert: _wave_encoder
+  # '_wave_encoder' or '_transformer'
