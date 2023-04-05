@@ -1,9 +1,31 @@
-n_classes: 2
+target_behaviour: iterate
+# 'iterate', 'binary' or 'ternary'
+cls_dict:
+  voice_gender:
+    - Feminine
+    - Masculine
+    - BOTH feminine and masculine voices
+    - There are no voices
+  voice_exagg:
+    - No, all voices are normal-sounding
+    - Yes a masculine voice is gender exaggerated
+    - Yes a feminine voice is gender exaggerated
+    - There are no voices
+  voice_age:
+    - Adults (including young adults)
+    - BOTH children and adults
+    - Children
+    - There are no voices
+  voice_type:
+    - BOTH spoken and sung
+    - Spoken
+    - Sung
+    - There are no voices
 modality: music
 # 'music', 'speech', or 'video'
-which: openl3
+which_embeddings: [mfcc, msd, openl3]
 # 'mfcc', 'msd' or 'openl3' for music, 'slow_fast' for video, 'hubert' for speech
-voice: false
+voice_list: [false, true]
 drop_non_significant: true
 repetitions: 10
 folds: 5
