@@ -9,6 +9,7 @@ from pytorch_lightning.core import LightningModule  # type: ignore
 from torch.nn import functional as F
 from music.backend import Backend
 from music.frontend import Frontend
+from statsmodels.stats.multitest import multipletests
 import numpy as np
 import yaml
 
@@ -36,13 +37,13 @@ embedding_dimensions = {
 #################
 
 
-def load_embeddings_and_labels_multitask(
-    groundtruth_df, emotions_and_mid_level, which, modality, voice, cls_dict
+def load_embeddings_and_labels(
+    groundtruth_df, emotions_and_mid_level_df, which, modality, voice, cls_dict
 ):
     """Load embeddings and labels for a given modality and embedding type.
     Args:
         groundtruth_df (pd.DataFrame): ground truth dataframe containing the classes
-        emotions_and_mid_level (pd.DataFrame): dataframe containing the regressors
+        emotions_and_mid_level_df (pd.DataFrame): dataframe containing the regressors
         which (str): which embeddings to load
         modality (str): which modality to load
         voice (bool): whether to load voice or no-voice embeddings
@@ -68,7 +69,7 @@ def load_embeddings_and_labels_multitask(
 
     # load embeddings
     X = np.empty((groundtruth_df.shape[0], embedding_dimensions[modality][which]))
-    y_reg = np.empty((emotions_and_mid_level.shape[0], emotions_and_mid_level.shape[1]))
+    y_reg = np.empty((emotions_and_mid_level_df.shape[0], emotions_and_mid_level_df.shape[1]))
 
     for i, stimulus_id in enumerate(groundtruth_df.index):
         embedding = np.load(
@@ -76,7 +77,7 @@ def load_embeddings_and_labels_multitask(
             + f"{stimulus_id}{fn_suffix[modality][which]}.npy"
         )
         X[i] = embedding.mean(axis=0)
-        y_reg[i] = emotions_and_mid_level.loc[stimulus_id].values
+        y_reg[i] = emotions_and_mid_level_df.loc[stimulus_id].values
 
     y_cls = {}
     for task, classes in cls_dict.items():
@@ -85,6 +86,62 @@ def load_embeddings_and_labels_multitask(
         y_cls[task] = np.array(y_cls[task])
 
     return X, y_reg, y_cls
+
+def results_to_text(
+    all_cls_f1s,
+    all_r2s,
+    all_pearsons,
+    all_ps,
+    n_emotions,
+    emo_and_mid_cols,
+):
+
+    text = ""
+    # std across folds, mean across repetitions for each entry in cls_dict
+    for k in all_cls_f1s:
+        text += f"\t{k} F1: {np.mean(all_cls_f1s[k]):.2f} ± {np.mean(np.std(all_cls_f1s[k], axis=1)):.2f}\n"
+
+    # aggregate and print r2 values, knowing that all_r2s has shape (repetitions, folds, n_regressions)
+    text += "\tR2:\n"
+    for i, response in enumerate(emo_and_mid_cols):
+        text += f"\t\t{response}: {np.mean(all_r2s[:, :, i]):.2f} ± {np.std(all_r2s[:, :, i]):.2f}\n"
+
+    text += "\tPearson's r:\n"
+    for i, response in enumerate(emo_and_mid_cols):
+        # ratio of significant values with holm-sidak correction
+        is_significant = multipletests(
+            all_ps[:, :, i].flatten(), alpha=0.05, method="holm-sidak"
+        )[0]
+        rat_sig = np.sum(is_significant) / len(is_significant)
+        temp_txt = f"\t\t{response}: {np.mean(all_pearsons[:, :, i]):.2f} ± {np.std(all_pearsons[:, :, i]):.2f}"
+        temp_txt += f" (ratio significant: {rat_sig:.2f})\n"
+        text += temp_txt
+
+    # across the emotion responses
+    mean_emo_r2 = np.mean(all_r2s[:, :, :n_emotions])
+    # std across folds and repetitions, mean across emotions
+    std_emo_r2 = np.mean(np.std(all_r2s[:, :, :n_emotions], axis=(0, 1)))
+
+    mean_emo_pears = np.mean(all_pearsons[:, :, :n_emotions])
+    std_emo_pears = np.mean(
+        np.std(all_pearsons[:, :, :n_emotions], axis=(0, 1))
+    )
+
+    # across the mid-level responses
+    mean_mid_r2 = np.mean(all_r2s[:, :, n_emotions:])
+    std_mid_r2 = np.mean(np.std(all_r2s[:, :, n_emotions:], axis=(0, 1)))
+
+    mean_mid_pears = np.mean(all_pearsons[:, :, n_emotions:])
+    std_mid_pears = np.mean(
+        np.std(all_pearsons[:, :, n_emotions:], axis=(0, 1))
+    )
+
+    text += f"Average R2 for emotion responses: {mean_emo_r2:.2f} ± {std_emo_r2:.2f}\n"
+    text += f"Average Pearson's r for emotion responses: {mean_emo_pears:.2f} ± {std_emo_pears:.2f}\n"
+    text += f"Average R2 for mid-level responses: {mean_mid_r2:.2f} ± {std_mid_r2:.2f}\n"
+    text += f"Average Pearson's r for mid-level responses: {mean_mid_pears:.2f} ± {std_mid_pears:.2f}\n"
+
+    return text
 
 
 ###################
@@ -211,7 +268,7 @@ class DynamicMultitasker(LightningModule):
         super().__init__()
         self.hidden1 = nn.Linear(input_dim, 256)
         self.hidden2 = nn.Linear(256, 128)
-        self.out_reg = nn.Linear(256, n_regressions)
+        self.out_reg = nn.Linear(128, n_regressions)
         self.out_cls = nn.ModuleDict(
             {k: nn.Linear(128, len(v)) for k, v in cls_dict.items()}
         )
@@ -249,6 +306,7 @@ class DynamicMultitasker(LightningModule):
             [F.cross_entropy(y_hat2[k], v, ignore_index=-1) for k, v in y_cls.items()]
         )
 
+        loss = loss1 + loss2
         self.log("val_loss", loss)
         return loss
 

@@ -23,9 +23,13 @@ cls_dict:
     - There are no voices
 modality: music
 # 'music', 'speech', or 'video'
-which_embeddings: [mfcc, msd, openl3]
+which_embeddings:
+  - msd
+  - openl3
 # 'mfcc', 'msd' or 'openl3' for music, 'slow_fast' for video, 'hubert' for speech
-voice_list: [false, true]
+voice_list:
+  - true
+#  - false
 drop_non_significant: true
 repetitions: 10
 folds: 5

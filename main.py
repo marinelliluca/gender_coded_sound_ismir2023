@@ -10,13 +10,12 @@ from utils import (
     DynamicMultitasker,
     load_embeddings_and_labels,
     embedding_dimensions,
+    results_to_text,
 )
 
 from sklearn.model_selection import KFold, train_test_split
-from sklearn.metrics import r2_score, accuracy_score, f1_score
-from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import r2_score, f1_score
 from scipy.stats import pearsonr
-from statsmodels.stats.multitest import multipletests
 import yaml
 
 # load config
@@ -34,6 +33,8 @@ elif config["target_behaviour"] == "binary":
     _ = config["targets_list"].pop(1)
 elif config["target_behaviour"] == "ternary":
     _ = config["targets_list"].pop(0)
+else:
+    raise ValueError("target_behaviour not valid")
 
 #####################
 # Load ground truth #
@@ -43,11 +44,10 @@ groundtruth_df = pd.read_csv("groundtruth_merged.csv")
 groundtruth_df.set_index("stimulus_id", inplace=True)
 
 # load responses
-emotions_and_mid_level = pd.read_csv("emotions_and_mid_level.csv")
-emotions_and_mid_level.set_index("stimulus_id", inplace=True)
+emotions_and_mid_level_df = pd.read_csv("emotions_and_mid_level.csv")
+emotions_and_mid_level_df.set_index("stimulus_id", inplace=True)
 
 n_emotions = 7
-
 if config["drop_non_significant"]:
     # drop columns that are not significant based on the ANOVA test
     to_drop = [
@@ -56,7 +56,7 @@ if config["drop_non_significant"]:
         "Repetitive/Non-repetitive",  # non significant differences between targets (ANOVA)
         "Fast tempo/Slow tempo",  # non significant differences between targets (ANOVA)
     ]
-    emotions_and_mid_level = emotions_and_mid_level.drop(columns=to_drop)
+    emotions_and_mid_level_df = emotions_and_mid_level_df.drop(columns=to_drop)
     n_emotions -= 1  # we dropped Amusing
 
 
@@ -68,7 +68,16 @@ for targets_list in config["targets_list"]:
             # Load embeddings and labels #
             ##############################
 
-            # RESTART HERE
+            config["cls_dict"]["target"] = targets_list
+
+            X, y_reg, y_cls = load_embeddings_and_labels(
+                groundtruth_df,
+                emotions_and_mid_level_df,
+                which,
+                config["modality"],
+                voice,
+                config["cls_dict"],
+            )
 
             #############
             # K-Fold CV #
@@ -77,16 +86,12 @@ for targets_list in config["targets_list"]:
             params = {
                 "input_dim": X.shape[1],
                 "n_regressions": y_reg.shape[1],
-                "output_dim1": len(np.unique(y_tar)),
-                "output_dim2": len(np.unique(y_voig)),
+                "cls_dict": config["cls_dict"],
             }
-            # inside this dict save y_cls (dict)
-
-            # Make the following a function that handles y_cls
 
             # all_accuracies = []
-            all_tar_f1s = []
-            all_voig_f1s = []
+            all_cls_f1s = {k: [] for k in config["cls_dict"]}
+
             all_r2s = []
             all_pearsons = []
             all_ps = []
@@ -96,9 +101,7 @@ for targets_list in config["targets_list"]:
                     n_splits=config["folds"], shuffle=True
                 )  # get a new split each time
 
-                # accuracies = []
-                tar_f1s = []
-                voig_f1s = []
+                cls_f1s = {k: [] for k in config["cls_dict"]}
                 r2s = []
                 pearsons = []
                 ps = []
@@ -112,23 +115,15 @@ for targets_list in config["targets_list"]:
                         y_reg[test_index],
                         y_reg[val_index],
                     )
-                    y_tar_train, y_tar_test, y_tar_val = (
-                        y_tar[train_index],
-                        y_tar[test_index],
-                        y_tar[val_index],
-                    )
-                    y_voig_train, y_voig_test, y_voig_val = (
-                        y_voig[train_index],
-                        y_voig[test_index],
-                        y_voig[val_index],
+
+                    y_cls_train, y_cls_test, y_cls_val = (
+                        {k: y_cls[k][train_index] for k in y_cls},
+                        {k: y_cls[k][test_index] for k in y_cls},
+                        {k: y_cls[k][val_index] for k in y_cls},
                     )
 
-                    train_dataset = EmbeddingsDataset2(
-                        X_train, y_reg_train, y_tar_train, y_voig_train
-                    )
-                    val_dataset = EmbeddingsDataset2(
-                        X_val, y_reg_val, y_tar_val, y_voig_val
-                    )
+                    train_dataset = DynamicDataset(X_train, y_reg_train, y_cls_train)
+                    val_dataset = DynamicDataset(X_val, y_reg_val, y_cls_val)
 
                     train_loader = DataLoader(
                         train_dataset, batch_size=8, shuffle=True, num_workers=1
@@ -137,7 +132,7 @@ for targets_list in config["targets_list"]:
                         val_dataset, batch_size=8, shuffle=False, num_workers=1
                     )
 
-                    model = MegaModelV1(**params)
+                    model = DynamicMultitasker(**params)
 
                     checkpoint_callback = ModelCheckpoint(monitor="val_loss")
                     trainer = pl.Trainer(
@@ -160,26 +155,21 @@ for targets_list in config["targets_list"]:
                     # evaluate on test set
                     model.eval()
                     with torch.no_grad():
-                        y_reg_pred, y_tar_pred, y_voig_pred = model(
-                            torch.from_numpy(X_test).float()
+                        y_hat1, y_hat2 = model(torch.from_numpy(X_test).float())
+
+                    for k in config["cls_dict"]:
+                        y_pred_temp = y_hat2[k]
+                        y_test_temp = y_cls_test[k]
+                        skip_unlabelled = y_test_temp != -1
+                        y_pred_temp = torch.argmax(y_pred_temp, dim=1).numpy()[
+                            skip_unlabelled
+                        ]
+                        y_test_temp = y_test_temp[skip_unlabelled]
+                        cls_f1s[k].append(
+                            f1_score(y_test_temp, y_pred_temp, average="weighted")
                         )
 
-                    skip_unlabelled = y_tar_test != -1
-                    y_tar_pred = torch.argmax(y_tar_pred, dim=1).numpy()[
-                        skip_unlabelled
-                    ]
-                    y_tar_test = y_tar_test[skip_unlabelled]
-                    tar_f1s.append(f1_score(y_tar_test, y_tar_pred, average="weighted"))
-
-                    skip_unlabelled = y_voig_test != -1
-                    y_voig_pred = torch.argmax(y_voig_pred, dim=1).numpy()[
-                        skip_unlabelled
-                    ]
-                    y_voig_test = y_voig_test[skip_unlabelled]
-                    voig_f1s.append(
-                        f1_score(y_voig_test, y_voig_pred, average="weighted")
-                    )
-
+                    y_reg_pred = y_hat1.numpy()
                     r2_values = r2_score(
                         y_reg_test, y_reg_pred, multioutput="raw_values"
                     )
@@ -196,16 +186,17 @@ for targets_list in config["targets_list"]:
                     pearsons.append(r)
                     ps.append(p)
 
-                # all_accuracies.append(accuracies)
-                all_tar_f1s.append(tar_f1s)
-                all_voig_f1s.append(voig_f1s)
+                for k in config["cls_dict"]:
+                    all_cls_f1s[k].append(cls_f1s[k])
+
                 all_r2s.append(r2s)
                 all_pearsons.append(pearsons)
                 all_ps.append(ps)
 
-            # all_accuracies = np.array(all_accuracies)
-            all_tar_f1s = np.array(all_tar_f1s)
-            all_voig_f1s = np.array(all_voig_f1s)
+            # convert to numpy arrays
+            for k in config["cls_dict"]:
+                all_cls_f1s[k] = np.array(all_cls_f1s[k])
+
             all_r2s = np.array(all_r2s)
             all_pearsons = np.array(all_pearsons)
             all_ps = np.array(all_ps)
@@ -213,59 +204,32 @@ for targets_list in config["targets_list"]:
             #################
             # Print results #
             #################
-            text = f"n_tar_cls: {n_tar_cls}, modality: {modality}, which: {which}\n"
 
-            # std across folds, mean across repetitions
-            text += f"\tTarget F1: {np.mean(all_tar_f1s):.2f} ± {np.mean(np.std(all_tar_f1s, axis=1)):.2f}\n"
-
-            text += f"\tVoice Gender F1: {np.mean(all_voig_f1s):.2f} ± {np.mean(np.std(all_voig_f1s, axis=1)):.2f}\n"
-
-            # aggregate and print r2 values, knowing that all_r2s has shape (repetitions, folds, n_regressions)
-            text += "\tR2:\n"
-            for i, response in enumerate(emotions_and_mid_level.columns):
-                text += f"\t\t{response}: {np.mean(all_r2s[:, :, i]):.2f} ± {np.std(all_r2s[:, :, i]):.2f}\n"
-
-            text += "\tPearson's r:\n"
-            for i, response in enumerate(emotions_and_mid_level.columns):
-                # ratio of significant values with holm-sidak correction
-                is_significant = multipletests(
-                    all_ps[:, :, i].flatten(), alpha=0.05, method="holm-sidak"
-                )[0]
-                rat_sig = np.sum(is_significant) / len(is_significant)
-                temp_txt = f"\t\t{response}: {np.mean(all_pearsons[:, :, i]):.2f} ± {np.std(all_pearsons[:, :, i]):.2f}"
-                temp_txt += f" (ratio significant: {rat_sig:.2f})\n"
-                text += temp_txt
-
-            # across the emotion responses
-            mean_emo_r2 = np.mean(all_r2s[:, :, :n_emotions])
-            # std across folds and repetitions, mean across emotions
-            std_emo_r2 = np.mean(np.std(all_r2s[:, :, :n_emotions], axis=(0, 1)))
-
-            mean_emo_pears = np.mean(all_pearsons[:, :, :n_emotions])
-            std_emo_pears = np.mean(
-                np.std(all_pearsons[:, :, :n_emotions], axis=(0, 1))
+            sec_classfc = [k for k in config["cls_dict"] if k != "target"]
+            text = f"Target + regressions + {', '.join(sec_classfc)}\n"
+            text += f"\tTarget classes: {len(targets_list)}\n"
+            text += (
+                f"Drop non significant regressors: {config['drop_non_significant']}\n"
             )
+            text += f"Embeddings: {which}, (modality: {config['modality']})\n"
 
-            # across the mid-level responses
-            mean_mid_r2 = np.mean(all_r2s[:, :, n_emotions:])
-            std_mid_r2 = np.mean(np.std(all_r2s[:, :, n_emotions:], axis=(0, 1)))
-
-            mean_mid_pears = np.mean(all_pearsons[:, :, n_emotions:])
-            std_mid_pears = np.mean(
-                np.std(all_pearsons[:, :, n_emotions:], axis=(0, 1))
+            text += results_to_text(
+                all_cls_f1s,
+                all_r2s,
+                all_pearsons,
+                all_ps,
+                n_emotions,
+                emotions_and_mid_level_df.columns,
             )
-
-            text += f"Average R2 for emotion responses: {mean_emo_r2:.2f} ± {std_emo_r2:.2f}\n"
-
-            text += f"Average Pearson's r for emotion responses: {mean_emo_pears:.2f} ± {std_emo_pears:.2f}\n"
-
-            text += f"Average R2 for mid-level responses: {mean_mid_r2:.2f} ± {std_mid_r2:.2f}\n"
-
-            text += f"Average Pearson's r for mid-level responses: {mean_mid_pears:.2f} ± {std_mid_pears:.2f}\n"
 
             print(text)
 
-            # now write the results to a file
-            filename = f"voige_gender_results_{n_tar_cls}_{modality}_{which}.txt"
+            # identifiable filename with all parameters
+            filename = (
+                f"results/targCls_{len(targets_list)}_{config['modality']}_{which}_voice_{voice}_NsecCls_{len(sec_classfc)}_"
+            )
+            filename += (
+                f"dropNs_{config['drop_non_significant']}_rep_{config['repetitions']}_fold_{config['folds']}.txt"
+            )
             with open(filename, "a") as f:
                 f.write(text)
