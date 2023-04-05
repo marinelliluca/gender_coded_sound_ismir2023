@@ -18,6 +18,11 @@ from sklearn.metrics import r2_score, f1_score
 from scipy.stats import pearsonr
 import yaml
 
+# set seed
+np.random.seed(42)
+torch.manual_seed(42)
+
+
 # load config
 with open("config.yaml", "r") as stream:
     config = yaml.safe_load(stream)
