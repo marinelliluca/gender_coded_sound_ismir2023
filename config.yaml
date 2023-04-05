@@ -30,6 +30,8 @@ which_embeddings:
 voice_list:
   - true
 #  - false
+# uncomment to iterate over voice/no-voice
 drop_non_significant: true
-repetitions: 10
+repetitions: 4 
+# random seed is not set in k-fold, so 4x5=20 "folds"
 folds: 5
