@@ -60,13 +60,15 @@ if config["drop_non_significant"]:
     n_emotions -= 1  # we dropped Amusing
 
 
+###################
+# Repeated k-fold #
+###################
+
+
 # iterate over the various configurations
 for targets_list in config["targets_list"]:
     for which in config["which_embeddings"]:
         for voice in config["voice_list"]:
-            ##############################
-            # Load embeddings and labels #
-            ##############################
 
             config["cls_dict"]["target"] = targets_list
 
@@ -78,10 +80,6 @@ for targets_list in config["targets_list"]:
                 voice,
                 config["cls_dict"],
             )
-
-            #############
-            # K-Fold CV #
-            #############
 
             params = {
                 "input_dim": X.shape[1],
@@ -208,6 +206,7 @@ for targets_list in config["targets_list"]:
             sec_classfc = [k for k in config["cls_dict"] if k != "target"]
             text = f"Target + regressions + {', '.join(sec_classfc)}\n"
             text += f"\tTarget classes: {len(targets_list)}\n"
+            text += f"\tVoice: {voice}\n"
             text += (
                 f"Drop non significant regressors: {config['drop_non_significant']}\n"
             )
@@ -224,7 +223,9 @@ for targets_list in config["targets_list"]:
 
             print(text)
 
-            # identifiable filename with all parameters
+            # save results to file
+
+            # identifiable filename with all relevant parameters
             filename = (
                 f"results/targCls_{len(targets_list)}_{config['modality']}_{which}_voice_{voice}_NsecCls_{len(sec_classfc)}_"
             )
