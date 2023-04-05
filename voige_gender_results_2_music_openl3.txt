@@ -1,0 +1,45 @@
+n_tar_cls: 2, modality: music, which: openl3, repetitions: 10
+	Target F1: 0.92 ± 0.08
+	Voice Gender F1: 0.78 ± 0.09	
+	R2:
+		Happy: 0.31 ± 0.13
+		Beauty: 0.36 ± 0.15
+		Calm: 0.32 ± 0.21
+		Energizing: 0.22 ± 0.15
+		Angry: 0.44 ± 0.18
+		Triumphant: 0.10 ± 0.15
+		Electric/Acoustic: 0.34 ± 0.13
+		Distorted/Clear: 0.46 ± 0.14
+		Many/Few Instruments: 0.13 ± 0.14
+		Loud/Soft: 0.41 ± 0.13
+		Heavy/Light: 0.61 ± 0.13
+		High/Low pitch: 0.38 ± 0.22
+		Punchy/Smooth: 0.41 ± 0.18
+		Harmonious/Disharmonious: 0.34 ± 0.18
+		Clear melody/No melody: 0.31 ± 0.13
+		Complex/Simple rhythm: 0.12 ± 0.11
+		Dense/Sparse: 0.37 ± 0.12
+		Strong beat/Weak beat: 0.34 ± 0.18
+	Pearson's r:
+		Happy: 0.60 ± 0.10
+		Beauty: 0.63 ± 0.13
+		Calm: 0.64 ± 0.09
+		Energizing: 0.50 ± 0.23
+		Angry: 0.66 ± 0.25
+		Triumphant: 0.38 ± 0.19
+		Electric/Acoustic: 0.61 ± 0.13
+		Distorted/Clear: 0.72 ± 0.07
+		Many/Few Instruments: 0.44 ± 0.14
+		Loud/Soft: 0.67 ± 0.08
+		Heavy/Light: 0.80 ± 0.06
+		High/Low pitch: 0.63 ± 0.23
+		Punchy/Smooth: 0.67 ± 0.11
+		Harmonious/Disharmonious: 0.60 ± 0.23
+		Clear melody/No melody: 0.57 ± 0.19
+		Complex/Simple rhythm: 0.45 ± 0.10
+		Dense/Sparse: 0.65 ± 0.09
+		Strong beat/Weak beat: 0.62 ± 0.15
+Average R2 for emotion responses: 0.29 ± 0.16
+Average Pearson's r for emotion responses: 0.57 ± 0.17
+Average R2 for mid-level responses: 0.35 ± 0.15
+Average Pearson's r for mid-level responses: 0.62 ± 0.13
