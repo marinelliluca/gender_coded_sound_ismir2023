@@ -267,7 +267,8 @@ class DynamicMultitasker(LightningModule):
     def __init__(self, input_dim, n_regressions, cls_dict):
         super().__init__()
         self.hidden1 = nn.Linear(input_dim, 256)
-        self.hidden2 = nn.Linear(256, 128)
+        self.hidden2_reg = nn.Linear(256, 128)
+        self.hidden2_cls = nn.Linear(256, 128)
         self.out_reg = nn.Linear(128, n_regressions)
         self.out_cls = nn.ModuleDict(
             {k: nn.Linear(128, len(v)) for k, v in cls_dict.items()}
@@ -275,9 +276,10 @@ class DynamicMultitasker(LightningModule):
 
     def forward(self, x):
         x = F.relu(self.hidden1(x))
-        x = F.relu(self.hidden2(x))
-        x_reg = self.out_reg(x)
-        x_cls = {k: v(x) for k, v in self.out_cls.items()}
+        x_reg = F.relu(self.hidden2_reg(x))
+        x_cls = F.relu(self.hidden2_cls(x))
+        x_reg = self.out_reg(x_reg)
+        x_cls = {k: v(x_cls) for k, v in self.out_cls.items()}
         return x_reg, x_cls
 
     def training_step(self, batch, batch_idx):
