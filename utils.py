@@ -10,6 +10,8 @@ from pytorch_lightning.core import LightningModule # type: ignore
 from torch.nn import functional as F
 from music.backend import Backend
 from music.frontend import Frontend
+import numpy as np
+import yaml
 
 
 # collection of utility functions
@@ -19,8 +21,14 @@ from music.frontend import Frontend
 #################
 
 def load_embeddings_and_labels(groundtruth_df, emotions_and_mid_level, emb_dim, which, modality, voice, n_tar_cls):
+
+    with open("fn_suffix.yaml", "r") as stream:
+        fn_suffix = yaml.safe_load(stream)
+
     # load embeddings
     X = np.empty((groundtruth_df.shape[0], emb_dim))
+    y_reg = np.empty((emotions_and_mid_level.shape[0], emotions_and_mid_level.shape[1]))
+
     for i,stimulus_id in enumerate(groundtruth_df.index):
         embedding = np.load(f"{modality}/embeddings_{which}{'' if voice else '_novoice'}/" +
                             f"{stimulus_id}{fn_suffix[modality][which]}.npy")
@@ -29,8 +37,8 @@ def load_embeddings_and_labels(groundtruth_df, emotions_and_mid_level, emb_dim, 
 
     tar_classes = ["Girls/women", "Boys/men"] if n_tar_cls==2 else ["Girls/women", "Mixed", "Boys/men"]
     y_tar = groundtruth_df.target.values
-    y_cls = [classes.index(x) if x in tar_classes else -1 for x in y_cls]
-    y_cls = np.array(y_cls)
+    y_tar = [tar_classes.index(x) if x in tar_classes else -1 for x in y_tar]
+    y_tar = np.array(y_tar)
     
     y_voig = None
     if voice:
