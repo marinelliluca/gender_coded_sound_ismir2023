@@ -1,0 +1,44 @@
+n_classes: 2, modality: music, which: mfcc, voice: False, repetitions: 10
+	F1: 0.79 ± 0.06
+	R2:
+		Happy: -0.09 ± 0.20
+		Beauty: -0.08 ± 0.28
+		Calm: -0.02 ± 0.25
+		Energizing: -0.11 ± 0.25
+		Angry: 0.04 ± 0.22
+		Triumphant: -0.25 ± 0.32
+		Electric/Acoustic: 0.08 ± 0.19
+		Distorted/Clear: 0.03 ± 0.22
+		Many/Few Instruments: -0.12 ± 0.28
+		Loud/Soft: 0.48 ± 0.13
+		Heavy/Light: 0.35 ± 0.15
+		High/Low pitch: -0.06 ± 0.22
+		Punchy/Smooth: 0.22 ± 0.19
+		Harmonious/Disharmonious: -0.15 ± 0.26
+		Clear melody/No melody: -0.08 ± 0.20
+		Complex/Simple rhythm: -0.29 ± 0.32
+		Dense/Sparse: 0.15 ± 0.23
+		Strong beat/Weak beat: 0.19 ± 0.21
+	Pearson's r:
+		Happy: 0.32 ± 0.12
+		Beauty: 0.33 ± 0.12
+		Calm: 0.36 ± 0.14
+		Energizing: 0.32 ± 0.11
+		Angry: 0.42 ± 0.12
+		Triumphant: 0.18 ± 0.13
+		Electric/Acoustic: 0.43 ± 0.13
+		Distorted/Clear: 0.42 ± 0.12
+		Many/Few Instruments: 0.33 ± 0.12
+		Loud/Soft: 0.75 ± 0.06
+		Heavy/Light: 0.64 ± 0.09
+		High/Low pitch: 0.38 ± 0.12
+		Punchy/Smooth: 0.59 ± 0.08
+		Harmonious/Disharmonious: 0.30 ± 0.12
+		Clear melody/No melody: 0.32 ± 0.13
+		Complex/Simple rhythm: 0.26 ± 0.14
+		Dense/Sparse: 0.56 ± 0.08
+		Strong beat/Weak beat: 0.57 ± 0.09
+Average R2 for emotion responses: -0.09 ± 0.25
+Average Pearson's r for emotion responses: 0.32 ± 0.12
+Average R2 for mid-level responses: 0.07 ± 0.22
+Average Pearson's r for mid-level responses: 0.46 ± 0.11

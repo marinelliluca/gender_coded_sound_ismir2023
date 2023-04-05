@@ -18,7 +18,28 @@ from music.frontend import Frontend
 # general utils #
 #################
 
-# placeholder
+def load_embeddings_and_labels(groundtruth_df, emotions_and_mid_level, emb_dim, which, modality, voice, n_tar_cls):
+    # load embeddings
+    X = np.empty((groundtruth_df.shape[0], emb_dim))
+    for i,stimulus_id in enumerate(groundtruth_df.index):
+        embedding = np.load(f"{modality}/embeddings_{which}{'' if voice else '_novoice'}/" +
+                            f"{stimulus_id}{fn_suffix[modality][which]}.npy")
+        X[i] = embedding.mean(axis=0)
+        y_reg[i] = emotions_and_mid_level.loc[stimulus_id].values
+
+    tar_classes = ["Girls/women", "Boys/men"] if n_tar_cls==2 else ["Girls/women", "Mixed", "Boys/men"]
+    y_tar = groundtruth_df.target.values
+    y_cls = [classes.index(x) if x in tar_classes else -1 for x in y_cls]
+    y_cls = np.array(y_cls)
+    
+    y_voig = None
+    if voice:
+        voig_classes = ['Feminine', 'Masculine', 'There are no voices', 'BOTH feminine and masculine voices']
+        y_voig = groundtruth_df.voice_gender.values
+        y_voig = [voig_classes.index(x) if x in voig_classes else -1 for x in y_voig]
+        y_voig = np.array(y_voig)
+
+    return X, y_reg, y_tar, y_voig
 
 ###################
 # MSD model utils #
@@ -118,3 +139,68 @@ class MultipleRegressionWithSoftmax(LightningModule):
 
     def configure_optimizers(self):
         return torch.optim.AdamW(self.parameters(), lr=1e-3, weight_decay=1e-5) # type: ignore
+
+
+class EmbeddingsDataset2(Dataset):
+    def __init__(self, X, y_reg, y_tar, y_voig):
+        self.X = torch.from_numpy(X).float()
+        self.y_reg = torch.from_numpy(y_reg).float()
+        self.y_tar = torch.from_numpy(y_tar).long()
+        self.y_voig = torch.from_numpy(y_voig).long()
+    
+    def __len__(self):
+        return self.X.shape[0]
+    
+    def __getitem__(self, idx):
+        return self.X[idx], self.y_reg[idx], self.y_tar[idx], self.y_voig[idx]
+
+
+class MegaModelV1(LightningModule):
+    def __init__(self, input_dim, n_regressions, output_dim1, output_dim2):
+        super().__init__()
+        self.linear = nn.Linear(input_dim, 128)
+        self.linear2 = nn.Linear(128, n_regressions)
+        self.linear3 = nn.Linear(128, output_dim1)
+        self.linear4 = nn.Linear(128, output_dim2)
+
+    def forward(self, x):
+        x = F.relu(self.linear(x))
+        x_reg = self.linear2(x)
+        x_tar = self.linear3(x)
+        x_voig = self.linear4(x)
+        return x_reg, x_tar, x_voig
+
+    def training_step(self, batch, batch_idx):
+        x, y_reg, y_tar, y_voig = batch
+        y_hat1, y_hat2, y_hat3 = self(x)
+        
+        loss1 = nn.MSELoss()(y_hat1, y_reg)
+        
+        # Handle missing data in the cost function
+        loss2 = F.cross_entropy(y_hat2, y_tar, ignore_index=-1)
+        
+        # Handle missing data in the cost function
+        loss3 = F.cross_entropy(y_hat3, y_voig, ignore_index=-1)
+        
+        loss = loss1 + loss2 + loss3
+        self.log('train_loss', loss)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        x, y_reg, y_tar,y_voig  = batch
+        y_hat1,y_hat2,y_hat3  = self(x)
+        
+        loss1 = nn.MSELoss()(y_hat1,y_reg )
+        
+        # Handle missing data in the cost function
+        loss2 = F.cross_entropy(y_hat2,y_tar , ignore_index=-1)
+        
+         # Handle missing data in the cost function
+        loss3 = F.cross_entropy(y_hat3,y_voig , ignore_index=-1)
+        
+        loss = loss1 + loss2 +loss3
+        self.log('val_loss', loss)
+        return loss
+
+    def configure_optimizers(self):
+        return torch.optim.AdamW(self.parameters(), lr=1e-3, weight_decay=1e-5)
