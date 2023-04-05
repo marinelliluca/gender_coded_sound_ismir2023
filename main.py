@@ -18,8 +18,7 @@ from sklearn.metrics import r2_score, f1_score
 from scipy.stats import pearsonr
 import yaml
 
-# set seed
-np.random.seed(42)
+# set torch seed
 torch.manual_seed(42)
 
 
