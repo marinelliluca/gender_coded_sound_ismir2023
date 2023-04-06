@@ -25,7 +25,8 @@ embedding_dimensions = {
     "music": {
         "mfcc": 60,
         "msd": 256,
-        "openl3": 512,
+        "openl3_music": 512,
+        "openl3_env": 512,
     },
     "speech": {
         "hubert": 1024 if fn_suffix["speech"]["hubert"] == "_transformer" else 512,

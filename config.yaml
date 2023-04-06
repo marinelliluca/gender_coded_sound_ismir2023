@@ -26,7 +26,8 @@ cls_dict:
 modality: music
 # 'music', 'speech', or 'video'
 which_embeddings:
-  - openl3
+  - openl3_music
+  - openl3_env
   - msd
   - mfcc
 # 'mfcc', 'msd' or 'openl3' for music, 'slow_fast' for video, 'hubert' for speech

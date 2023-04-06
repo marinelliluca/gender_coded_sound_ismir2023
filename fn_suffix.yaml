@@ -1,8 +1,9 @@
 music:
   mfcc: ''
   msd: _backend
-  openl3: _music
-  # '_music' or '_env'
+  openl3_music: _music
+  openl3_env: _env
+  # redundant, but I have changed the folders afterwards
 video:
   slow_fast: _slow
   # '_slow' or '_fast'
