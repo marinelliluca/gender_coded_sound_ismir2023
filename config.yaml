@@ -16,11 +16,11 @@ cls_dict:
     - Spoken
     - Sung
     - There are no voices
-#  voice_age:
-#    - Adults (including young adults)
-#    - BOTH children and adults
-#    - Children
-#    - There are no voices
+  voice_age:
+    - Adults (including young adults)
+    - BOTH children and adults
+    - Children
+    - There are no voices
 modality: music
 # 'music', 'speech', or 'video'
 which_embeddings:
