@@ -319,4 +319,4 @@ class DynamicMultitasker(LightningModule):
         return loss
 
     def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=1e-3, weight_decay=1e-5)
+        return torch.optim.AdamW(self.parameters(), lr=1e-3, weight_decay=1e-3, amsgrad=True)  # type: ignore

@@ -1,4 +1,4 @@
-target_behaviour: binary
+target_behaviour: iterate
 # 'iterate', 'binary' or 'ternary'
 cls_dict:
   voice_gender:
@@ -21,16 +21,18 @@ cls_dict:
     - BOTH children and adults
     - Children
     - There are no voices
+# to perform only target classification set "cls_dict: {}"
+# and comment out the rest of the keys
 modality: music
 # 'music', 'speech', or 'video'
 which_embeddings:
-  - msd
   - openl3
+  - msd
   - mfcc
 # 'mfcc', 'msd' or 'openl3' for music, 'slow_fast' for video, 'hubert' for speech
 voice_list:
   - true
-#  - false
+  - false
 # uncomment to iterate over voice/no-voice
 drop_non_significant: true
 repetitions: 10 
