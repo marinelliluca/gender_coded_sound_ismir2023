@@ -264,11 +264,13 @@ class DynamicDataset(Dataset):
 
 
 class DynamicMultitasker(LightningModule):
-    def __init__(self, input_dim, n_regressions, cls_dict):
+    def __init__(self, input_dim, n_regressions, cls_dict, cls_weighing=1.0):
         super().__init__()
-        self.hidden1 = nn.Linear(input_dim, 256)
-        self.hidden2_reg = nn.Linear(256, 128)
-        self.hidden2_cls = nn.Linear(256, 128)
+        self.cls_weighing = cls_weighing
+        self.hidden1 = nn.Linear(input_dim, 128)
+        self.bn_cls = nn.BatchNorm1d(128)
+        self.hidden2_reg = nn.Linear(128, 128)
+        self.hidden2_cls = nn.Linear(128, 128)
         self.out_reg = nn.Linear(128, n_regressions)
         self.out_cls = nn.ModuleDict(
             {k: nn.Linear(128, len(v)) for k, v in cls_dict.items()}
@@ -276,24 +278,28 @@ class DynamicMultitasker(LightningModule):
 
     def forward(self, x):
         x = F.relu(self.hidden1(x))
-        x_reg = F.relu(self.hidden2_reg(x))
+        
+        x_cls = self.bn_cls(x)
         x_cls = F.relu(self.hidden2_cls(x))
-        x_reg = self.out_reg(x_reg)
         x_cls = {k: v(x_cls) for k, v in self.out_cls.items()}
+
+        x_reg = F.relu(self.hidden2_reg(x))
+        x_reg = self.out_reg(x_reg)
+        
         return x_reg, x_cls
 
     def training_step(self, batch, batch_idx):
         x, y_reg, y_cls = batch
         y_hat1, y_hat2 = self(x)
 
-        loss1 = nn.MSELoss()(y_hat1, y_reg)
+        loss_reg = nn.MSELoss()(y_hat1, y_reg)
 
         # Handle missing data in the cost function
-        loss2 = sum(
+        loss_cls = sum(
             [F.cross_entropy(y_hat2[k], v, ignore_index=-1) for k, v in y_cls.items()]
         )
 
-        loss = loss1 + loss2
+        loss = loss_reg + self.cls_weighing * loss_cls 
         self.log("train_loss", loss)
         return loss
 

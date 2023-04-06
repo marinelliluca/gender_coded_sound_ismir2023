@@ -21,6 +21,8 @@ import yaml
 # set torch seed
 torch.manual_seed(42)
 
+# TODO: the routing branch is a good idea (different embeddings for different targets)
+# but it must not be done by modality, but by voice or no-voice
 
 # load config
 with open("config.yaml", "r") as stream:
