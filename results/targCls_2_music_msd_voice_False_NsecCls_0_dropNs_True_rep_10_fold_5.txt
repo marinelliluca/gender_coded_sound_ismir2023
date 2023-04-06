@@ -1,0 +1,48 @@
+Target + regressions + 
+	Target classes: 2
+	Voice: False
+Drop non significant regressors: True
+Embeddings: msd, (modality: music)
+	target F1: 0.88 ± 0.05
+	R2:
+		Happy: 0.20 ± 0.18
+		Beauty: 0.28 ± 0.12
+		Calm: 0.33 ± 0.13
+		Energizing: 0.23 ± 0.14
+		Angry: 0.41 ± 0.17
+		Triumphant: 0.05 ± 0.14
+		Electric/Acoustic: 0.39 ± 0.12
+		Distorted/Clear: 0.48 ± 0.10
+		Many/Few Instruments: 0.11 ± 0.11
+		Loud/Soft: 0.52 ± 0.11
+		Heavy/Light: 0.65 ± 0.09
+		High/Low pitch: 0.34 ± 0.12
+		Punchy/Smooth: 0.53 ± 0.11
+		Harmonious/Disharmonious: 0.40 ± 0.14
+		Clear melody/No melody: 0.36 ± 0.14
+		Complex/Simple rhythm: 0.04 ± 0.15
+		Dense/Sparse: 0.35 ± 0.10
+		Strong beat/Weak beat: 0.41 ± 0.10
+	Pearson's r:
+		Happy: 0.52 ± 0.10 (ratio significant: 0.98)
+		Beauty: 0.57 ± 0.07 (ratio significant: 1.00)
+		Calm: 0.63 ± 0.09 (ratio significant: 1.00)
+		Energizing: 0.54 ± 0.09 (ratio significant: 1.00)
+		Angry: 0.70 ± 0.07 (ratio significant: 1.00)
+		Triumphant: 0.36 ± 0.10 (ratio significant: 0.42)
+		Electric/Acoustic: 0.65 ± 0.07 (ratio significant: 1.00)
+		Distorted/Clear: 0.73 ± 0.05 (ratio significant: 1.00)
+		Many/Few Instruments: 0.39 ± 0.12 (ratio significant: 0.52)
+		Loud/Soft: 0.75 ± 0.07 (ratio significant: 1.00)
+		Heavy/Light: 0.82 ± 0.04 (ratio significant: 1.00)
+		High/Low pitch: 0.62 ± 0.07 (ratio significant: 1.00)
+		Punchy/Smooth: 0.75 ± 0.07 (ratio significant: 1.00)
+		Harmonious/Disharmonious: 0.67 ± 0.08 (ratio significant: 1.00)
+		Clear melody/No melody: 0.64 ± 0.09 (ratio significant: 1.00)
+		Complex/Simple rhythm: 0.39 ± 0.10 (ratio significant: 0.56)
+		Dense/Sparse: 0.62 ± 0.07 (ratio significant: 1.00)
+		Strong beat/Weak beat: 0.67 ± 0.07 (ratio significant: 1.00)
+Average R2 for emotion responses: 0.25 ± 0.15
+Average Pearson's r for emotion responses: 0.55 ± 0.09
+Average R2 for mid-level responses: 0.38 ± 0.11
+Average Pearson's r for mid-level responses: 0.64 ± 0.07
