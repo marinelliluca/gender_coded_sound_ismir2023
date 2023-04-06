@@ -21,8 +21,12 @@ import yaml
 # set torch seed
 torch.manual_seed(42)
 
-# TODO: the routing branch is a good idea (different embeddings for different targets)
-# but it must not be done by modality, but by voice or no-voice
+# TODO: 
+#   - The routing branch is a good idea (different embeddings for different targets).
+#     It must not be done by modality, but by voice or no-voice.
+#   - a way to do include critical analysis in the loss function is to employ a gain on 
+#     the signal coming from the class gender exaggeration, as well as the scales anger, 
+#     beauty, etc, together with the overall target.
 
 # load config
 with open("config.yaml", "r") as stream:
@@ -103,7 +107,7 @@ for targets_list in config["targets_list"]:
             for _ in range(config["repetitions"]):
                 kf = KFold(
                     n_splits=config["folds"], shuffle=True
-                )  # get a new split each time
+                )  # NO RANDOM SEED, get a new split each time
 
                 cls_f1s = {k: [] for k in config["cls_dict"]}
                 r2s = []
