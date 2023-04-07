@@ -21,11 +21,11 @@ import yaml
 # set torch seed
 torch.manual_seed(42)
 
-# TODO: 
+# TODO:
 #   - The routing branch is a good idea (different embeddings for different targets).
 #     It must not be done by modality, but by voice or no-voice.
-#   - a way to do include critical analysis in the loss function is to employ a gain on 
-#     the signal coming from the class gender exaggeration, as well as the scales anger, 
+#   - a way to do include critical analysis in the loss function is to employ a gain on
+#     the signal coming from the class gender exaggeration, as well as the scales anger,
 #     beauty, etc, together with the overall target.
 
 # load config
@@ -79,21 +79,22 @@ if config["drop_non_significant"]:
 for targets_list in config["targets_list"]:
     for which in config["which_embeddings"]:
         for voice in config["voice_list"]:
-
             config["cls_dict"]["target"] = targets_list
 
-            X, y_reg, y_cls = load_embeddings_and_labels(
+            X, y_mid, y_emo, y_cls = load_embeddings_and_labels(
                 groundtruth_df,
                 emotions_and_mid_level_df,
                 which,
                 config["modality"],
                 voice,
                 config["cls_dict"],
+                n_emotions,
             )
 
             params = {
                 "input_dim": X.shape[1],
-                "n_regressions": y_reg.shape[1],
+                "n_emo": y_emo.shape[1],
+                "n_mid": y_mid.shape[1],
                 "cls_dict": config["cls_dict"],
             }
 
@@ -118,10 +119,17 @@ for targets_list in config["targets_list"]:
                     test_index, val_index = train_test_split(test_index, test_size=0.5)
 
                     X_train, X_test, X_val = X[train_index], X[test_index], X[val_index]
-                    y_reg_train, y_reg_test, y_reg_val = (
-                        y_reg[train_index],
-                        y_reg[test_index],
-                        y_reg[val_index],
+
+                    y_mid_train, y_mid_test, y_mid_val = (
+                        y_mid[train_index],
+                        y_mid[test_index],
+                        y_mid[val_index],
+                    )
+
+                    y_emo_train, y_emo_test, y_emo_val = (
+                        y_emo[train_index],
+                        y_emo[test_index],
+                        y_emo[val_index],
                     )
 
                     y_cls_train, y_cls_test, y_cls_val = (
@@ -130,8 +138,10 @@ for targets_list in config["targets_list"]:
                         {k: y_cls[k][val_index] for k in y_cls},
                     )
 
-                    train_dataset = DynamicDataset(X_train, y_reg_train, y_cls_train)
-                    val_dataset = DynamicDataset(X_val, y_reg_val, y_cls_val)
+                    train_dataset = DynamicDataset(
+                        X_train, y_mid_train, y_emo_train, y_cls_train
+                    )
+                    val_dataset = DynamicDataset(X_val, y_mid_val, y_emo_val, y_cls_val)
 
                     train_loader = DataLoader(
                         train_dataset, batch_size=8, shuffle=True, num_workers=1
@@ -163,10 +173,12 @@ for targets_list in config["targets_list"]:
                     # evaluate on test set
                     model.eval()
                     with torch.no_grad():
-                        y_hat1, y_hat2 = model(torch.from_numpy(X_test).float())
+                        y_mid_pred, y_emo_pred, y_cls_pred = model(
+                            torch.from_numpy(X_test).float()
+                        )
 
                     for k in config["cls_dict"]:
-                        y_pred_temp = y_hat2[k]
+                        y_pred_temp = y_cls_pred[k]
                         y_test_temp = y_cls_test[k]
                         skip_unlabelled = y_test_temp != -1
                         y_pred_temp = torch.argmax(y_pred_temp, dim=1).numpy()[
@@ -177,37 +189,58 @@ for targets_list in config["targets_list"]:
                             f1_score(y_test_temp, y_pred_temp, average="weighted")
                         )
 
-                    y_reg_pred = y_hat1.numpy()
-                    r2_values = r2_score(
-                        y_reg_test, y_reg_pred, multioutput="raw_values"
-                    )
-                    r2s.append(r2_values)
+                    y_mid_pred = y_mid_pred.numpy()
+                    y_emo_pred = y_emo_pred.numpy()
+                    r2_mid = r2_score(y_mid_test, y_mid_pred, multioutput="raw_values")
+                    r2s_mid.append(r2_mid)
+                    r2_emo = r2_score(y_emo_test, y_emo_pred, multioutput="raw_values")
+                    r2s_emo.append(r2_emo)
 
-                    r = [
-                        pearsonr(y_reg_test[:, i], y_reg_pred[:, i])[0]
-                        for i in range(y_reg_test.shape[1])
+                    r_mid = [
+                        pearsonr(y_mid_test[:, i], y_mid_pred[:, i])[0]
+                        for i in range(y_mid_test.shape[1])
                     ]
-                    p = [
-                        pearsonr(y_reg_test[:, i], y_reg_pred[:, i])[1]
-                        for i in range(y_reg_test.shape[1])
+
+                    r_emo = [
+                        pearsonr(y_emo_test[:, i], y_emo_pred[:, i])[0]
+                        for i in range(y_emo_test.shape[1])
                     ]
-                    pearsons.append(r)
-                    ps.append(p)
+
+                    p_mid = [
+                        pearsonr(y_mid_test[:, i], y_mid_pred[:, i])[1]
+                        for i in range(y_mid_test.shape[1])
+                    ]
+
+                    p_emo = [
+                        pearsonr(y_emo_test[:, i], y_emo_pred[:, i])[1]
+                        for i in range(y_emo_test.shape[1])
+                    ]
+
+                    pear_emo.append(r_emo)
+                    pear_mid.append(r_mid)
+                    ps_emo.append(p_emo)
+                    ps_mid.append(p_mid)
 
                 for k in config["cls_dict"]:
                     all_cls_f1s[k].append(cls_f1s[k])
 
-                all_r2s.append(r2s)
-                all_pearsons.append(pearsons)
-                all_ps.append(ps)
+                all_r2s_emo.append(r2s_emo)
+                all_r2s_mid.append(r2s_mid)
+                all_pear_emo.append(pear_emo)
+                all_pear_mid.append(pear_mid)
+                all_ps_emo.append(ps_emo)
+                all_ps_mid.append(ps_mid)
 
             # convert to numpy arrays
             for k in config["cls_dict"]:
                 all_cls_f1s[k] = np.array(all_cls_f1s[k])
 
-            all_r2s = np.array(all_r2s)
-            all_pearsons = np.array(all_pearsons)
-            all_ps = np.array(all_ps)
+            all_r2s_mid = np.array(all_r2s_mid)
+            all_r2s_emo = np.array(all_r2s_emo)
+            all_pear_mid = np.array(all_pear_mid)
+            all_pear_emo = np.array(all_pear_emo)
+            all_ps_mid = np.array(all_ps_mid)
+            all_ps_emo = np.array(all_ps_emo)
 
             #################
             # Print results #
@@ -236,11 +269,7 @@ for targets_list in config["targets_list"]:
             # save results to file
 
             # identifiable filename with all relevant parameters
-            filename = (
-                f"results/targCls_{len(targets_list)}_{config['modality']}_{which}_voice_{voice}_NsecCls_{len(sec_classfc)}_"
-            )
-            filename += (
-                f"dropNs_{config['drop_non_significant']}_rep_{config['repetitions']}_fold_{config['folds']}.txt"
-            )
+            filename = f"results/targCls_{len(targets_list)}_{config['modality']}_{which}_voice_{voice}_NsecCls_{len(sec_classfc)}_"
+            filename += f"dropNs_{config['drop_non_significant']}_rep_{config['repetitions']}_fold_{config['folds']}.txt"
             with open(filename, "a") as f:
                 f.write(text)

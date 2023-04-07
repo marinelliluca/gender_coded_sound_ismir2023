@@ -39,7 +39,13 @@ embedding_dimensions = {
 
 
 def load_embeddings_and_labels(
-    groundtruth_df, emotions_and_mid_level_df, which, modality, voice, cls_dict
+    groundtruth_df,
+    emotions_and_mid_level_df,
+    which,
+    modality,
+    voice,
+    cls_dict,
+    n_emotions=7,
 ):
     """Load embeddings and labels for a given modality and embedding type.
     Args:
@@ -51,7 +57,8 @@ def load_embeddings_and_labels(
         cls_dict (dict): dictionary containing the SELECTED classes for each classification task
     Returns:
         X (np.array): embeddings
-        y_reg (np.array): regressors
+        y_mid (np.array): mid-level features
+        y_emo (np.array): emotion scales
         y_cls (dict): dictionary containing the labels for each classification task
 
     Example of cls_dict:
@@ -70,7 +77,9 @@ def load_embeddings_and_labels(
 
     # load embeddings
     X = np.empty((groundtruth_df.shape[0], embedding_dimensions[modality][which]))
-    y_reg = np.empty((emotions_and_mid_level_df.shape[0], emotions_and_mid_level_df.shape[1]))
+    y_reg = np.empty(
+        (emotions_and_mid_level_df.shape[0], emotions_and_mid_level_df.shape[1])
+    )
 
     for i, stimulus_id in enumerate(groundtruth_df.index):
         embedding = np.load(
@@ -80,23 +89,28 @@ def load_embeddings_and_labels(
         X[i] = embedding.mean(axis=0)
         y_reg[i] = emotions_and_mid_level_df.loc[stimulus_id].values
 
+    y_mid, y_emo = y_reg[:, n_emotions:], y_reg[:, :n_emotions]
+
     y_cls = {}
     for task, classes in cls_dict.items():
         y_cls[task] = groundtruth_df[task].values
         y_cls[task] = [classes.index(x) if x in classes else -1 for x in y_cls[task]]
         y_cls[task] = np.array(y_cls[task])
 
-    return X, y_reg, y_cls
+    return X, y_mid, y_emo, y_cls
+
 
 def results_to_text(
     all_cls_f1s,
-    all_r2s,
-    all_pearsons,
-    all_ps,
-    n_emotions,
-    emo_and_mid_cols,
+    all_r2s_mid,
+    all_r2s_emo,
+    all_pear_mid,
+    all_pear_emo,
+    all_ps_mid,
+    all_ps_emo,
+    mid_cols,
+    emo_cols,
 ):
-
     text = ""
     # std across folds, mean across repetitions for each entry in cls_dict
     for k in all_cls_f1s:
@@ -104,43 +118,54 @@ def results_to_text(
 
     # aggregate and print r2 values, knowing that all_r2s has shape (repetitions, folds, n_regressions)
     text += "\tR2:\n"
-    for i, response in enumerate(emo_and_mid_cols):
-        text += f"\t\t{response}: {np.mean(all_r2s[:, :, i]):.2f} ± {np.std(all_r2s[:, :, i]):.2f}\n"
+    for i, response in enumerate(mid_cols):
+        text += f"\t\t{response}: {np.mean(all_r2s_mid[:, :, i]):.2f} ± {np.std(all_r2s_mid[:, :, i]):.2f}\n"
+
+    for i, response in enumerate(emo_cols):
+        text += f"\t\t{response}: {np.mean(all_r2s_emo[:, :, i]):.2f} ± {np.std(all_r2s_emo[:, :, i]):.2f}\n"
 
     text += "\tPearson's r:\n"
-    for i, response in enumerate(emo_and_mid_cols):
+    for i, response in enumerate(mid_cols):
         # ratio of significant values with holm-sidak correction
         is_significant = multipletests(
             all_ps[:, :, i].flatten(), alpha=0.05, method="holm-sidak"
         )[0]
         rat_sig = np.sum(is_significant) / len(is_significant)
-        temp_txt = f"\t\t{response}: {np.mean(all_pearsons[:, :, i]):.2f} ± {np.std(all_pearsons[:, :, i]):.2f}"
+        temp_txt = f"\t\t{response}: {np.mean(all_pear_mid[:, :, i]):.2f} ± {np.std(all_pear_mid[:, :, i]):.2f}"
         temp_txt += f" (ratio significant: {rat_sig:.2f})\n"
         text += temp_txt
 
-    # across the emotion responses
-    mean_emo_r2 = np.mean(all_r2s[:, :, :n_emotions])
-    # std across folds and repetitions, mean across emotions
-    std_emo_r2 = np.mean(np.std(all_r2s[:, :, :n_emotions], axis=(0, 1)))
-
-    mean_emo_pears = np.mean(all_pearsons[:, :, :n_emotions])
-    std_emo_pears = np.mean(
-        np.std(all_pearsons[:, :, :n_emotions], axis=(0, 1))
-    )
+    for i, response in enumerate(emo_cols):
+        # ratio of significant values with holm-sidak correction
+        is_significant = multipletests(
+            all_ps[:, :, i].flatten(), alpha=0.05, method="holm-sidak"
+        )[0]
+        rat_sig = np.sum(is_significant) / len(is_significant)
+        temp_txt = f"\t\t{response}: {np.mean(all_pear_emo[:, :, i]):.2f} ± {np.std(all_pear_emo[:, :, i]):.2f}"
+        temp_txt += f" (ratio significant: {rat_sig:.2f})\n"
+        text += temp_txt
 
     # across the mid-level responses
-    mean_mid_r2 = np.mean(all_r2s[:, :, n_emotions:])
-    std_mid_r2 = np.mean(np.std(all_r2s[:, :, n_emotions:], axis=(0, 1)))
+    mean_mid_r2 = np.mean(all_r2s_mid)
+    std_mid_r2 = np.mean(np.std(all_r2s_mid, axis=(0, 1)))
 
-    mean_mid_pears = np.mean(all_pearsons[:, :, n_emotions:])
-    std_mid_pears = np.mean(
-        np.std(all_pearsons[:, :, n_emotions:], axis=(0, 1))
+    mean_mid_pears = np.mean(all_pear_mid)
+    std_mid_pears = np.mean(np.std(all_pear_mid, axis=(0, 1)))
+
+    # across the emotion responses
+    mean_emo_r2 = np.mean(all_r2s_emo)
+    # std across folds and repetitions, mean across emotions
+    std_emo_r2 = np.mean(np.std(all_r2s_emo, axis=(0, 1)))
+
+    mean_emo_pears = np.mean(all_pear_emo)
+    std_emo_pears = np.mean(np.std(all_pear_emo, axis=(0, 1)))
+
+    text += (
+        f"Average R2 for mid-level responses: {mean_mid_r2:.2f} ± {std_mid_r2:.2f}\n"
     )
-
+    text += f"Average Pearson's r for mid-level responses: {mean_mid_pears:.2f} ± {std_mid_pears:.2f}\n"
     text += f"Average R2 for emotion responses: {mean_emo_r2:.2f} ± {std_emo_r2:.2f}\n"
     text += f"Average Pearson's r for emotion responses: {mean_emo_pears:.2f} ± {std_emo_pears:.2f}\n"
-    text += f"Average R2 for mid-level responses: {mean_mid_r2:.2f} ± {std_mid_r2:.2f}\n"
-    text += f"Average Pearson's r for mid-level responses: {mean_mid_pears:.2f} ± {std_mid_pears:.2f}\n"
 
     return text
 
@@ -193,6 +218,7 @@ class AssembleModel(nn.Module):
 # class and reg utils #
 #######################
 
+
 class FiLM(LightningModule):
     def __init__(self, num_features):
         super(FiLM, self).__init__()
@@ -204,6 +230,7 @@ class FiLM(LightningModule):
         gamma = self.fc_gamma(cond)
         beta = self.fc_beta(cond)
         return x * gamma + beta
+
 
 class EmbeddingsDataset(Dataset):
     def __init__(self, X, y_reg, y_cls):
@@ -262,10 +289,10 @@ class MultipleRegressionWithSoftmax(LightningModule):
 
 
 class DynamicDataset(Dataset):
-    def __init__(self, X, y_emo, y_mid, y_cls):
+    def __init__(self, X, y_mid, y_emo, y_cls):
         self.X = torch.from_numpy(X).float()
-        self.y_emo = torch.from_numpy(y_emo).float()
         self.y_mid = torch.from_numpy(y_mid).float()
+        self.y_emo = torch.from_numpy(y_emo).float()
         self.y_cls = {k: torch.from_numpy(v).long() for k, v in y_cls.items()}
 
     def __len__(self):
@@ -273,10 +300,11 @@ class DynamicDataset(Dataset):
 
     def __getitem__(self, idx):
         y_cls = {k: v[idx] for k, v in self.y_cls.items()}
-        return self.X[idx], self.y_emo[idx], self.y_mid[idx], y_cls
+        return self.X[idx], self.y_mid[idx], self.y_emo[idx], y_cls
+
 
 class DynamicMultitasker(LightningModule):
-    def __init__(self, input_dim, n_emo, n_mid, cls_dict, cls_weighing=0.9):
+    def __init__(self, input_dim, n_mid, n_emo, cls_dict, cls_weighing=1.0):
         super().__init__()
         self.hidden = nn.Linear(input_dim, 128)
 
@@ -294,8 +322,8 @@ class DynamicMultitasker(LightningModule):
         )
 
     def forward(self, x):
-        x = F.relu(self.hidden(x))
-        
+        # x = F.relu(self.hidden(x))
+
         x_cls = self.bn_cls(x)
         x_cls = F.relu(self.hidden_cls(x))
         x_cls = {k: v(x_cls) for k, v in self.out_cls.items()}
@@ -304,25 +332,43 @@ class DynamicMultitasker(LightningModule):
         x_mid = self.out_mid(x_mid)
 
         x_emo = F.relu(self.hidden_emo(x))
-        # condition the output of the hidden layer 
-        # on the mid-level features
+        # condition the output of hidden_emo on the mid-level features
         x_emo = self.film(x_emo, x_mid)
         x_emo = self.out_emo(x_emo)
-        
-        return x_emo, x_mid, x_cls
+
+        return x_mid, x_emo, x_cls
 
     def training_step(self, batch, batch_idx):
-        x, y_emo, y_mid, y_cls = batch
+        x, y_mid, y_emo, y_cls = batch
         y_hat1, y_hat2, y_hat3 = self(x)
 
-        loss_emo = nn.MSELoss()(y_hat1, y_emo)
-        loss_mid = nn.MSELoss()(y_hat2, y_mid)
+        loss_mid = nn.MSELoss()(y_hat1, y_mid)
+        loss_emo = nn.MSELoss()(y_hat2, y_emo)
 
         # Handle missing data in the cost function
         loss_cls = sum(
             [F.cross_entropy(y_hat3[k], v, ignore_index=-1) for k, v in y_cls.items()]
         )
 
-        loss = loss_emo + loss_mid + self.cls_weighing * loss_cls 
+        loss = loss_mid + loss_mid + self.cls_weighing * loss_cls
         self.log("train_loss", loss)
         return loss
+
+    def validation_step(self, batch, batch_idx):
+        x, y_mid, y_emo, y_cls = batch
+        y_hat1, y_hat2, y_hat3 = self(x)
+
+        loss_mid = nn.MSELoss()(y_hat1, y_mid)
+        loss_emo = nn.MSELoss()(y_hat2, y_emo)
+
+        # Handle missing data in the cost function
+        loss_cls = sum(
+            [F.cross_entropy(y_hat3[k], v, ignore_index=-1) for k, v in y_cls.items()]
+        )
+
+        loss = loss_mid + loss_mid + self.cls_weighing * loss_cls
+        self.log("val_loss", loss)
+        return loss
+
+    def configure_optimizers(self):
+        return torch.optim.AdamW(self.parameters(), lr=1e-3, weight_decay=1e-3, amsgrad=True)  # type: ignore
