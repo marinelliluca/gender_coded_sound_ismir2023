@@ -251,7 +251,6 @@ class FiLM(LightningModule):
         self.fc_beta = nn.Linear(num_features, num_outputs)
 
     def forward(self, x, cond):
-
         gamma = F.relu(self.fc_gamma(cond))
         beta = F.relu(self.fc_beta(cond))
         return x * gamma + beta
