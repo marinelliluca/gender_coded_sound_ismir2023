@@ -160,7 +160,7 @@ for targets_list in config["targets_list"]:
 
                     checkpoint_callback = ModelCheckpoint(monitor="val_loss")
                     trainer = pl.Trainer(
-                        max_epochs=100,
+                        max_epochs=config["max_epochs"],
                         callbacks=[
                             checkpoint_callback,
                             EarlyStopping(monitor="val_loss", patience=30),
