@@ -277,7 +277,7 @@ for targets_list in config["targets_list"]:
 
             # horrid way to get the filename
             foo = "_filmed" if config["filmed"] else ""
-            filename = f"results_{foo}/targCls_{len(targets_list)}_{config['modality']}_{which}"
+            filename = f"results{foo}/targCls_{len(targets_list)}_{config['modality']}_{which}"
             filename +=f"_voice_{voice}_NsecCls_{len(sec_classfc)}_dropNs_{config['drop_non_significant']}"
             filename += f"_rep_{config['repetitions']}_fold_{config['folds']}.txt"
             with open(filename, "a") as f:

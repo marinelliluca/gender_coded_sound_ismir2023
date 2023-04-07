@@ -230,7 +230,7 @@ class AssembleModel(nn.Module):
 
     def forward(self, x, cond):
         
-        # (Thanks Ben!!)
+        # (Thanks Ben for the help with understanding this)
         # with the relu activation, after the first layer we are removing its ability to 
         # (a) invert the feature axis and 
         # (b) apply negative shifts
@@ -242,7 +242,6 @@ class AssembleModel(nn.Module):
         gamma = self.fc_gamma2(F.relu(self.fc_gamma1(cond)))
         beta = self.fc_beta2(F.relu(self.fc_beta1(cond)))
         return x * gamma + beta """
-# but it actually hurt performance
 
 class FiLM(LightningModule):
     def __init__(self, num_features, num_outputs):
@@ -253,7 +252,12 @@ class FiLM(LightningModule):
     def forward(self, x, cond):
         gamma = F.relu(self.fc_gamma(cond))
         beta = F.relu(self.fc_beta(cond))
+        # limiting the range to [0, inf) seems to help
+        # contrary to what the paper says
+        # it might be because of the direct relation between the mid-level and the emotions
+        # y_emo = y_mid * gamma + beta
         return x * gamma + beta
+        
 
 
 class EmbeddingsDataset(Dataset):
