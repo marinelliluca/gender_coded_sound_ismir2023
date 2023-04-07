@@ -1,4 +1,4 @@
-target_behaviour: iterate
+target_behaviour: binary
 # 'iterate', 'binary' or 'ternary'
 cls_dict:
   voice_gender:
@@ -28,14 +28,14 @@ modality: music
 which_embeddings:
   - openl3_music
   - openl3_env
-  - msd
-  - mfcc
+#  - msd
+#  - mfcc
 # 'mfcc', 'msd' or 'openl3' for music, 'slow_fast' for video, 'hubert' for speech
 voice_list:
   - true
   - false
 # uncomment to iterate over voice/no-voice
 drop_non_significant: true
-repetitions: 10 
+repetitions: 1 
 # random seed is not set in k-fold, so 4x5=20 "folds"
 folds: 5
