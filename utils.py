@@ -322,7 +322,7 @@ class DynamicMultitasker(LightningModule):
         )
 
     def forward(self, x):
-        # x = F.relu(self.hidden(x))
+        x = F.relu(self.hidden(x))
 
         x_cls = self.bn_cls(x)
         x_cls = F.relu(self.hidden_cls(x))

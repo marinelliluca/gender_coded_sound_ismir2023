@@ -278,7 +278,7 @@ for targets_list in config["targets_list"]:
             # save results to file
 
             # identifiable filename with all relevant parameters
-            filename = f"results/targCls_{len(targets_list)}_{config['modality']}_{which}_voice_{voice}_NsecCls_{len(sec_classfc)}_"
+            filename = f"results_filmed/targCls_{len(targets_list)}_{config['modality']}_{which}_voice_{voice}_NsecCls_{len(sec_classfc)}_"
             filename += f"dropNs_{config['drop_non_significant']}_rep_{config['repetitions']}_fold_{config['folds']}.txt"
             with open(filename, "a") as f:
                 f.write(text)
