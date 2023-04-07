@@ -79,6 +79,8 @@ if config["drop_non_significant"]:
 for targets_list in config["targets_list"]:
     for which in config["which_embeddings"]:
         for voice in config["voice_list"]:
+
+            # add current main classification (binary or ternary)
             config["cls_dict"]["target"] = targets_list
 
             # load data
@@ -232,7 +234,7 @@ for targets_list in config["targets_list"]:
                 all_ps_emo.append(ps_emo)
                 all_ps_mid.append(ps_mid)
 
-            # Convert to numpy arrays
+            # convert to numpy arrays
             for k in config["cls_dict"]:
                 all_cls_f1s[k] = np.array(all_cls_f1s[k])
             all_r2s_mid = np.array(all_r2s_mid)
@@ -246,7 +248,7 @@ for targets_list in config["targets_list"]:
             # Print results #
             #################
 
-            # Header
+            # header
             sec_classfc = [k for k in config["cls_dict"] if k != "target"] # secondary classifiers
             text = f"Target + regressions + {', '.join(sec_classfc)}\n"
             text += f"\tTarget classes: {len(targets_list)}\n"
@@ -256,7 +258,7 @@ for targets_list in config["targets_list"]:
             )
             text += f"Embeddings: {which}, (modality: {config['modality']})\n"
 
-            # Results
+            # results
             text += results_to_text(
                 all_cls_f1s,
                 all_r2s_mid,
@@ -271,9 +273,9 @@ for targets_list in config["targets_list"]:
 
             print(text)
 
-            # Save results to file
+            # save results to file
 
-            # Horrid way to get the filename
+            # horrid way to get the filename
             filename = f"results_{config["filmed"]}/targCls_{len(targets_list)}_{config['modality']}_{which}"
             filename +=f"_voice_{voice}_NsecCls_{len(sec_classfc)}_dropNs_{config['drop_non_significant']}"
             filename += f"_rep_{config['repetitions']}_fold_{config['folds']}.txt"
