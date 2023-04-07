@@ -193,6 +193,17 @@ class AssembleModel(nn.Module):
 # class and reg utils #
 #######################
 
+class FiLM(LightningModule):
+    def __init__(self, num_features):
+        super(FiLM, self).__init__()
+        self.num_features = num_features
+        self.fc_gamma = nn.Linear(num_features, num_features)
+        self.fc_beta = nn.Linear(num_features, num_features)
+
+    def forward(self, x, cond):
+        gamma = self.fc_gamma(cond)
+        beta = self.fc_beta(cond)
+        return x * gamma + beta
 
 class EmbeddingsDataset(Dataset):
     def __init__(self, X, y_reg, y_cls):
@@ -251,9 +262,10 @@ class MultipleRegressionWithSoftmax(LightningModule):
 
 
 class DynamicDataset(Dataset):
-    def __init__(self, X, y_reg, y_cls):
+    def __init__(self, X, y_emo, y_mid, y_cls):
         self.X = torch.from_numpy(X).float()
-        self.y_reg = torch.from_numpy(y_reg).float()
+        self.y_emo = torch.from_numpy(y_emo).float()
+        self.y_mid = torch.from_numpy(y_mid).float()
         self.y_cls = {k: torch.from_numpy(v).long() for k, v in y_cls.items()}
 
     def __len__(self):
@@ -261,63 +273,56 @@ class DynamicDataset(Dataset):
 
     def __getitem__(self, idx):
         y_cls = {k: v[idx] for k, v in self.y_cls.items()}
-        return self.X[idx], self.y_reg[idx], y_cls
-
+        return self.X[idx], self.y_emo[idx], self.y_mid[idx], y_cls
 
 class DynamicMultitasker(LightningModule):
-    def __init__(self, input_dim, n_regressions, cls_dict, cls_weighing=1.0):
+    def __init__(self, input_dim, n_emo, n_mid, cls_dict, cls_weighing=0.9):
         super().__init__()
-        self.cls_weighing = cls_weighing
-        self.hidden1 = nn.Linear(input_dim, 128)
+        self.hidden = nn.Linear(input_dim, 128)
+
+        self.hidden_mid = nn.Linear(128, 128)
+        self.out_mid = nn.Linear(128, n_mid)
+        self.film = FiLM(128)
+
+        self.hidden_emo = nn.Linear(128, 128)
+        self.out_emo = nn.Linear(128, n_emo)
+
         self.bn_cls = nn.BatchNorm1d(128)
-        self.hidden2_reg = nn.Linear(128, 128)
-        self.hidden2_cls = nn.Linear(128, 128)
-        self.out_reg = nn.Linear(128, n_regressions)
+        self.hidden_cls = nn.Linear(128, 128)
         self.out_cls = nn.ModuleDict(
             {k: nn.Linear(128, len(v)) for k, v in cls_dict.items()}
         )
 
     def forward(self, x):
-        x = F.relu(self.hidden1(x))
+        x = F.relu(self.hidden(x))
         
         x_cls = self.bn_cls(x)
-        x_cls = F.relu(self.hidden2_cls(x))
+        x_cls = F.relu(self.hidden_cls(x))
         x_cls = {k: v(x_cls) for k, v in self.out_cls.items()}
 
-        x_reg = F.relu(self.hidden2_reg(x))
-        x_reg = self.out_reg(x_reg)
+        x_mid = F.relu(self.hidden_mid(x))
+        x_mid = self.out_mid(x_mid)
+
+        x_emo = F.relu(self.hidden_emo(x))
+        # condition the output of the hidden layer 
+        # on the mid-level features
+        x_emo = self.film(x_emo, x_mid)
+        x_emo = self.out_emo(x_emo)
         
-        return x_reg, x_cls
+        return x_emo, x_mid, x_cls
 
     def training_step(self, batch, batch_idx):
-        x, y_reg, y_cls = batch
-        y_hat1, y_hat2 = self(x)
+        x, y_emo, y_mid, y_cls = batch
+        y_hat1, y_hat2, y_hat3 = self(x)
 
-        loss_reg = nn.MSELoss()(y_hat1, y_reg)
+        loss_emo = nn.MSELoss()(y_hat1, y_emo)
+        loss_mid = nn.MSELoss()(y_hat2, y_mid)
 
         # Handle missing data in the cost function
         loss_cls = sum(
-            [F.cross_entropy(y_hat2[k], v, ignore_index=-1) for k, v in y_cls.items()]
+            [F.cross_entropy(y_hat3[k], v, ignore_index=-1) for k, v in y_cls.items()]
         )
 
-        loss = loss_reg + self.cls_weighing * loss_cls 
+        loss = loss_emo + loss_mid + self.cls_weighing * loss_cls 
         self.log("train_loss", loss)
         return loss
-
-    def validation_step(self, batch, batch_idx):
-        x, y_reg, y_cls = batch
-        y_hat1, y_hat2 = self(x)
-
-        loss1 = nn.MSELoss()(y_hat1, y_reg)
-
-        # Handle missing data in the cost function
-        loss2 = sum(
-            [F.cross_entropy(y_hat2[k], v, ignore_index=-1) for k, v in y_cls.items()]
-        )
-
-        loss = loss1 + loss2
-        self.log("val_loss", loss)
-        return loss
-
-    def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=1e-3, weight_decay=1e-3, amsgrad=True)  # type: ignore
