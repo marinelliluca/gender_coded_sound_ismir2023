@@ -38,5 +38,5 @@ voice_list:
 drop_non_significant: true
 max_epochs: 200
 repetitions: 2 
-# random seed is not set in k-fold, so 4x5=20 "folds"
+# random seed is not set in k-fold, so 2x5=10 "folds"
 folds: 5
