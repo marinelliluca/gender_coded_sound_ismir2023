@@ -328,14 +328,18 @@ class DynamicDataset(Dataset):
 
 
 class DynamicMultitasker(LightningModule):
-    def __init__(self, input_dim, n_mid, n_emo, cls_dict, cls_weighing=1.0):
+    def __init__(self, input_dim, n_mid, n_emo, cls_dict, filmed=True, cls_weighing=1.0):
         super().__init__()
         self.cls_weighing = cls_weighing
+        self.filmed = filmed
+        
         self.hidden = nn.Linear(input_dim, 128)
 
         self.hidden_mid = nn.Linear(128, 128)
         self.out_mid = nn.Linear(128, n_mid)
-        self.film = FiLM(n_mid, 128)
+
+        if self.filmed:
+            self.film = FiLM(n_mid, 128)
 
         self.hidden_emo = nn.Linear(128, 128)
         self.out_emo = nn.Linear(128, n_emo)
@@ -357,7 +361,8 @@ class DynamicMultitasker(LightningModule):
         x_mid = self.out_mid(x_mid)
 
         x_emo = F.relu(self.hidden_emo(x))
-        x_emo = self.film(x_emo, x_mid) # FiLM
+        if self.filmed:
+            x_emo = self.film(x_emo, x_mid)
         x_emo = self.out_emo(x_emo)
 
         return x_mid, x_emo, x_cls

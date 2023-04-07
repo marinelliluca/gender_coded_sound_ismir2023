@@ -53,13 +53,13 @@ else:
 groundtruth_df = pd.read_csv("groundtruth_merged.csv")
 groundtruth_df.set_index("stimulus_id", inplace=True)
 
-# load responses
+
 emotions_and_mid_level_df = pd.read_csv("emotions_and_mid_level.csv")
 emotions_and_mid_level_df.set_index("stimulus_id", inplace=True)
 
+# drop columns that would introduce noise
 n_emotions = 7
 if config["drop_non_significant"]:
-    # drop columns that are not significant based on the ANOVA test
     to_drop = [
         "Amusing",  # Extremely low correlations with all the mid-level features
         "Wide/Narrow pitch variation",  # non significant differences between targets (ANOVA)
@@ -81,6 +81,7 @@ for targets_list in config["targets_list"]:
         for voice in config["voice_list"]:
             config["cls_dict"]["target"] = targets_list
 
+            # load data
             X, y_mid, y_emo, y_cls = load_embeddings_and_labels(
                 groundtruth_df,
                 emotions_and_mid_level_df,
@@ -91,16 +92,17 @@ for targets_list in config["targets_list"]:
                 n_emotions,
             )
 
+            # set the parameters for the model
             params = {
                 "input_dim": X.shape[1],
                 "n_emo": y_emo.shape[1],
                 "n_mid": y_mid.shape[1],
                 "cls_dict": config["cls_dict"],
+                "filmed": config["filmed"],
             }
 
-            # all_accuracies = []
+            # prepare the results
             all_cls_f1s = {k: [] for k in config["cls_dict"]}
-
             all_r2s_mid = []
             all_r2s_emo = []
             all_pear_mid = []
@@ -124,31 +126,27 @@ for targets_list in config["targets_list"]:
                 for train_index, test_index in kf.split(X):
                     test_index, val_index = train_test_split(test_index, test_size=0.5)
 
+                    # get the split
                     X_train, X_test, X_val = X[train_index], X[test_index], X[val_index]
-
                     y_mid_train, y_mid_test, y_mid_val = (
                         y_mid[train_index],
                         y_mid[test_index],
                         y_mid[val_index],
                     )
-
                     y_emo_train, y_emo_test, y_emo_val = (
                         y_emo[train_index],
                         y_emo[test_index],
                         y_emo[val_index],
                     )
-
                     y_cls_train, y_cls_test, y_cls_val = (
                         {k: y_cls[k][train_index] for k in y_cls},
                         {k: y_cls[k][test_index] for k in y_cls},
                         {k: y_cls[k][val_index] for k in y_cls},
                     )
-
                     train_dataset = DynamicDataset(
                         X_train, y_mid_train, y_emo_train, y_cls_train
                     )
                     val_dataset = DynamicDataset(X_val, y_mid_val, y_emo_val, y_cls_val)
-
                     train_loader = DataLoader(
                         train_dataset, batch_size=8, shuffle=True, num_workers=1
                     )
@@ -156,6 +154,7 @@ for targets_list in config["targets_list"]:
                         val_dataset, batch_size=8, shuffle=False, num_workers=1
                     )
 
+                    # train
                     model = DynamicMultitasker(**params)
 
                     checkpoint_callback = ModelCheckpoint(monitor="val_loss")
@@ -186,9 +185,10 @@ for targets_list in config["targets_list"]:
                     for k in config["cls_dict"]:
                         y_pred_temp = y_cls_pred[k]
                         y_test_temp = y_cls_test[k]
+
                         skip_unlabelled = y_test_temp != -1
                         y_pred_temp = torch.argmax(y_pred_temp, dim=1).numpy()[
-                            skip_unlabelled
+                            skip_unlabelled # <<<<<<<<<<<<<<<<<<<<<
                         ]
                         y_test_temp = y_test_temp[skip_unlabelled]
                         cls_f1s[k].append(
@@ -206,22 +206,18 @@ for targets_list in config["targets_list"]:
                         pearsonr(y_mid_test[:, i], y_mid_pred[:, i])[0]
                         for i in range(y_mid_test.shape[1])
                     ]
-
                     r_emo = [
                         pearsonr(y_emo_test[:, i], y_emo_pred[:, i])[0]
                         for i in range(y_emo_test.shape[1])
                     ]
-
                     p_mid = [
                         pearsonr(y_mid_test[:, i], y_mid_pred[:, i])[1]
                         for i in range(y_mid_test.shape[1])
                     ]
-
                     p_emo = [
                         pearsonr(y_emo_test[:, i], y_emo_pred[:, i])[1]
                         for i in range(y_emo_test.shape[1])
                     ]
-
                     pears_emo.append(r_emo)
                     pears_mid.append(r_mid)
                     ps_emo.append(p_emo)
@@ -229,7 +225,6 @@ for targets_list in config["targets_list"]:
 
                 for k in config["cls_dict"]:
                     all_cls_f1s[k].append(cls_f1s[k])
-
                 all_r2s_emo.append(r2s_emo)
                 all_r2s_mid.append(r2s_mid)
                 all_pear_emo.append(pears_emo)
@@ -237,10 +232,9 @@ for targets_list in config["targets_list"]:
                 all_ps_emo.append(ps_emo)
                 all_ps_mid.append(ps_mid)
 
-            # convert to numpy arrays
+            # Convert to numpy arrays
             for k in config["cls_dict"]:
                 all_cls_f1s[k] = np.array(all_cls_f1s[k])
-
             all_r2s_mid = np.array(all_r2s_mid)
             all_r2s_emo = np.array(all_r2s_emo)
             all_pear_mid = np.array(all_pear_mid)
@@ -252,7 +246,8 @@ for targets_list in config["targets_list"]:
             # Print results #
             #################
 
-            sec_classfc = [k for k in config["cls_dict"] if k != "target"]
+            # Header
+            sec_classfc = [k for k in config["cls_dict"] if k != "target"] # secondary classifiers
             text = f"Target + regressions + {', '.join(sec_classfc)}\n"
             text += f"\tTarget classes: {len(targets_list)}\n"
             text += f"\tVoice: {voice}\n"
@@ -261,6 +256,7 @@ for targets_list in config["targets_list"]:
             )
             text += f"Embeddings: {which}, (modality: {config['modality']})\n"
 
+            # Results
             text += results_to_text(
                 all_cls_f1s,
                 all_r2s_mid,
@@ -275,10 +271,11 @@ for targets_list in config["targets_list"]:
 
             print(text)
 
-            # save results to file
+            # Save results to file
 
-            # identifiable filename with all relevant parameters
-            filename = f"results_filmed/targCls_{len(targets_list)}_{config['modality']}_{which}_voice_{voice}_NsecCls_{len(sec_classfc)}_"
-            filename += f"dropNs_{config['drop_non_significant']}_rep_{config['repetitions']}_fold_{config['folds']}.txt"
+            # Horrid way to get the filename
+            filename = f"results_{config["filmed"]}/targCls_{len(targets_list)}_{config['modality']}_{which}"
+            filename +=f"_voice_{voice}_NsecCls_{len(sec_classfc)}_dropNs_{config['drop_non_significant']}"
+            filename += f"_rep_{config['repetitions']}_fold_{config['folds']}.txt"
             with open(filename, "a") as f:
                 f.write(text)
