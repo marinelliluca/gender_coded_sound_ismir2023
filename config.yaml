@@ -1,4 +1,4 @@
-target_behaviour: binary
+target_behaviour: ternary
 # 'iterate', 'binary' or 'ternary'
 cls_dict:
   voice_gender:
