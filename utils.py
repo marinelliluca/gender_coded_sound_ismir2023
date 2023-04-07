@@ -233,11 +233,11 @@ class AssembleModel(nn.Module):
         # (Thanks Ben for the help with understanding this)
         # with the relu activation, after the first layer we are removing its ability to 
         # (a) invert the feature axis and 
-        # (b) apply negative shifts
+        # (b) apply negative shifts
         # so we need to add a second layer to get these back
         # if you apply another linear layer after the relu you will get the nonlinearity 
         # (which is presumably helping with your specific task) 
-        # and also you will get the full (-∞, ∞) output range
+        # and also you will get the full (-∞, ∞) output range
 
         gamma = self.fc_gamma2(F.relu(self.fc_gamma1(cond)))
         beta = self.fc_beta2(F.relu(self.fc_beta1(cond)))
@@ -253,9 +253,10 @@ class FiLM(LightningModule):
         gamma = F.relu(self.fc_gamma(cond))
         beta = F.relu(self.fc_beta(cond))
         # limiting the range to [0, inf) seems to help
-        # contrary to what the paper says
-        # it might be because of the direct relation between the mid-level and the emotions
-        # y_emo = y_mid * gamma + beta
+        # contrary to what the paper says, why? have fun finding out
+        # 
+        # maybe unrelated, but
+        # y_emo = y_mid * gamma(x) + beta(x)
         return x * gamma + beta
         
 
@@ -334,6 +335,11 @@ class DynamicDataset(Dataset):
 class DynamicMultitasker(LightningModule):
     def __init__(self, input_dim, n_mid, n_emo, cls_dict, filmed=True, cls_weighing=1.0):
         super().__init__()
+
+        # TODO: 
+        # - in future studies we should try see how cls_weighing affects the results
+        # - also see whether a granular weighting for each output would be better
+
         self.cls_weighing = cls_weighing
         self.filmed = filmed
         
