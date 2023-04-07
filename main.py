@@ -101,9 +101,12 @@ for targets_list in config["targets_list"]:
             # all_accuracies = []
             all_cls_f1s = {k: [] for k in config["cls_dict"]}
 
-            all_r2s = []
-            all_pearsons = []
-            all_ps = []
+            all_r2s_mid = []
+            all_r2s_emo = []
+            all_pear_mid = []
+            all_pear_emo = []
+            all_ps_mid = []
+            all_ps_emo = []
 
             for _ in range(config["repetitions"]):
                 kf = KFold(
@@ -111,9 +114,12 @@ for targets_list in config["targets_list"]:
                 )  # NO RANDOM SEED, get a new split each time
 
                 cls_f1s = {k: [] for k in config["cls_dict"]}
-                r2s = []
-                pearsons = []
-                ps = []
+                r2s_mid = []
+                r2s_emo = []
+                pears_mid = []
+                pears_emo = []
+                ps_mid = []
+                ps_emo = []
 
                 for train_index, test_index in kf.split(X):
                     test_index, val_index = train_test_split(test_index, test_size=0.5)
@@ -216,8 +222,8 @@ for targets_list in config["targets_list"]:
                         for i in range(y_emo_test.shape[1])
                     ]
 
-                    pear_emo.append(r_emo)
-                    pear_mid.append(r_mid)
+                    pears_emo.append(r_emo)
+                    pears_mid.append(r_mid)
                     ps_emo.append(p_emo)
                     ps_mid.append(p_mid)
 
@@ -226,8 +232,8 @@ for targets_list in config["targets_list"]:
 
                 all_r2s_emo.append(r2s_emo)
                 all_r2s_mid.append(r2s_mid)
-                all_pear_emo.append(pear_emo)
-                all_pear_mid.append(pear_mid)
+                all_pear_emo.append(pears_emo)
+                all_pear_mid.append(pears_mid)
                 all_ps_emo.append(ps_emo)
                 all_ps_mid.append(ps_mid)
 
@@ -257,11 +263,14 @@ for targets_list in config["targets_list"]:
 
             text += results_to_text(
                 all_cls_f1s,
-                all_r2s,
-                all_pearsons,
-                all_ps,
-                n_emotions,
-                emotions_and_mid_level_df.columns,
+                all_r2s_mid,
+                all_r2s_emo,
+                all_pear_mid,
+                all_pear_emo,
+                all_ps_mid,
+                all_ps_emo,
+                emotions_and_mid_level_df.columns[n_emotions:],
+                emotions_and_mid_level_df.columns[:n_emotions]
             )
 
             print(text)
