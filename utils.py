@@ -226,8 +226,8 @@ class FiLM(LightningModule):
         self.fc_beta = nn.Linear(num_features, num_outputs)
 
     def forward(self, x, cond):
-        gamma = self.fc_gamma(cond)
-        beta = self.fc_beta(cond)
+        gamma = F.relu(self.fc_gamma(cond))
+        beta = F.relu(self.fc_beta(cond))
         return x * gamma + beta
 
 
@@ -331,9 +331,8 @@ class DynamicMultitasker(LightningModule):
         x_mid = F.relu(self.hidden_mid(x))
         x_mid = self.out_mid(x_mid)
 
-        # condition the input of hidden_emo on the mid-level features
-        x_emo = F.relu(self.film(x, x_mid))
-        x_emo = F.relu(self.hidden_emo(x_emo))
+        x_emo = F.relu(self.hidden_emo(x))
+        x_emo = self.film(x_emo, x_mid) # FiLM
         x_emo = self.out_emo(x_emo)
 
         return x_mid, x_emo, x_cls
