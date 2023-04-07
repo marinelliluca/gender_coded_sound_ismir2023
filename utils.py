@@ -339,14 +339,14 @@ class DynamicMultitasker(LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y_mid, y_emo, y_cls = batch
-        y_hat1, y_hat2, y_hat3 = self(x)
+        y_hat_mid, y_hat_emo, y_hat_cls = self(x)
 
-        loss_mid = nn.MSELoss()(y_hat1, y_mid)
-        loss_emo = nn.MSELoss()(y_hat2, y_emo)
+        loss_mid = nn.MSELoss()(y_hat_mid, y_mid)
+        loss_emo = nn.MSELoss()(y_hat_emo, y_emo)
 
         # Handle missing data in the cost function
         loss_cls = sum(
-            [F.cross_entropy(y_hat3[k], v, ignore_index=-1) for k, v in y_cls.items()]
+            [F.cross_entropy(y_hat_cls[k], v, ignore_index=-1) for k, v in y_cls.items()]
         )
 
         loss = loss_mid + loss_emo + self.cls_weighing * loss_cls
