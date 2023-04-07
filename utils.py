@@ -128,7 +128,7 @@ def results_to_text(
     for i, response in enumerate(mid_cols):
         # ratio of significant values with holm-sidak correction
         is_significant = multipletests(
-            all_ps[:, :, i].flatten(), alpha=0.05, method="holm-sidak"
+            all_ps_mid[:, :, i].flatten(), alpha=0.05, method="holm-sidak"
         )[0]
         rat_sig = np.sum(is_significant) / len(is_significant)
         temp_txt = f"\t\t{response}: {np.mean(all_pear_mid[:, :, i]):.2f} ± {np.std(all_pear_mid[:, :, i]):.2f}"
@@ -138,7 +138,7 @@ def results_to_text(
     for i, response in enumerate(emo_cols):
         # ratio of significant values with holm-sidak correction
         is_significant = multipletests(
-            all_ps[:, :, i].flatten(), alpha=0.05, method="holm-sidak"
+            all_ps_emo[:, :, i].flatten(), alpha=0.05, method="holm-sidak"
         )[0]
         rat_sig = np.sum(is_significant) / len(is_significant)
         temp_txt = f"\t\t{response}: {np.mean(all_pear_emo[:, :, i]):.2f} ± {np.std(all_pear_emo[:, :, i]):.2f}"
@@ -305,6 +305,7 @@ class DynamicDataset(Dataset):
 class DynamicMultitasker(LightningModule):
     def __init__(self, input_dim, n_mid, n_emo, cls_dict, cls_weighing=1.0):
         super().__init__()
+        self.cls_weighing = cls_weighing
         self.hidden = nn.Linear(input_dim, 128)
 
         self.hidden_mid = nn.Linear(128, 128)
