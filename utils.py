@@ -356,8 +356,8 @@ class DynamicMultitasker(LightningModule):
         x_mid = F.relu(self.hidden_mid(x))
         x_mid = self.out_mid(x_mid)
 
-        x_emo = self.film(x, x_mid) # FiLM
-        x_emo = F.relu(self.hidden_emo(x_emo))
+        x_emo = F.relu(self.hidden_emo(x))
+        x_emo = self.film(x_emo, x_mid) # FiLM
         x_emo = self.out_emo(x_emo)
 
         return x_mid, x_emo, x_cls
