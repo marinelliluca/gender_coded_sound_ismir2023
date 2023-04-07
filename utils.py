@@ -220,11 +220,10 @@ class AssembleModel(nn.Module):
 
 
 class FiLM(LightningModule):
-    def __init__(self, num_features):
+    def __init__(self, num_features, num_outputs):
         super(FiLM, self).__init__()
-        self.num_features = num_features
-        self.fc_gamma = nn.Linear(num_features, num_features)
-        self.fc_beta = nn.Linear(num_features, num_features)
+        self.fc_gamma = nn.Linear(num_features, num_outputs)
+        self.fc_beta = nn.Linear(num_features, num_outputs)
 
     def forward(self, x, cond):
         gamma = self.fc_gamma(cond)
@@ -310,7 +309,7 @@ class DynamicMultitasker(LightningModule):
 
         self.hidden_mid = nn.Linear(128, 128)
         self.out_mid = nn.Linear(128, n_mid)
-        self.film = FiLM(128)
+        self.film = FiLM(n_mid, 128)
 
         self.hidden_emo = nn.Linear(128, 128)
         self.out_emo = nn.Linear(128, n_emo)
