@@ -331,9 +331,9 @@ class DynamicMultitasker(LightningModule):
         x_mid = F.relu(self.hidden_mid(x))
         x_mid = self.out_mid(x_mid)
 
-        x_emo = F.relu(self.hidden_emo(x))
-        # condition the output of hidden_emo on the mid-level features
-        x_emo = self.film(x_emo, x_mid)
+        # condition the input of hidden_emo on the mid-level features
+        x_emo = F.relu(self.film(x, x_mid))
+        x_emo = F.relu(self.hidden_emo(x_emo))
         x_emo = self.out_emo(x_emo)
 
         return x_mid, x_emo, x_cls
