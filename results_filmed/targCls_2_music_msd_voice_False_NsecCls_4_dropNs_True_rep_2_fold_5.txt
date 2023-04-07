@@ -1,0 +1,52 @@
+Target + regressions + voice_gender, voice_exagg, voice_type, voice_age
+	Target classes: 2
+	Voice: False
+Drop non significant regressors: True
+Embeddings: msd, (modality: music)
+	voice_gender F1: 0.68 ± 0.05
+	voice_exagg F1: 0.58 ± 0.06
+	voice_type F1: 0.63 ± 0.06
+	voice_age F1: 0.74 ± 0.06
+	target F1: 0.86 ± 0.05
+	R2:
+		Electric/Acoustic: 0.36 ± 0.09
+		Distorted/Clear: 0.53 ± 0.11
+		Many/Few Instruments: 0.14 ± 0.13
+		Loud/Soft: 0.50 ± 0.12
+		Heavy/Light: 0.63 ± 0.10
+		High/Low pitch: 0.30 ± 0.14
+		Punchy/Smooth: 0.48 ± 0.19
+		Harmonious/Disharmonious: 0.39 ± 0.09
+		Clear melody/No melody: 0.35 ± 0.07
+		Complex/Simple rhythm: 0.18 ± 0.11
+		Dense/Sparse: 0.37 ± 0.12
+		Strong beat/Weak beat: 0.30 ± 0.12
+		Happy: 0.12 ± 0.22
+		Beauty: 0.25 ± 0.13
+		Calm: 0.39 ± 0.10
+		Energizing: 0.11 ± 0.18
+		Angry: 0.48 ± 0.10
+		Triumphant: 0.07 ± 0.08
+	Pearson's r:
+		Electric/Acoustic: 0.62 ± 0.06 (ratio significant: 1.00)
+		Distorted/Clear: 0.75 ± 0.07 (ratio significant: 1.00)
+		Many/Few Instruments: 0.41 ± 0.13 (ratio significant: 0.80)
+		Loud/Soft: 0.71 ± 0.09 (ratio significant: 1.00)
+		Heavy/Light: 0.80 ± 0.06 (ratio significant: 1.00)
+		High/Low pitch: 0.58 ± 0.10 (ratio significant: 1.00)
+		Punchy/Smooth: 0.72 ± 0.11 (ratio significant: 1.00)
+		Harmonious/Disharmonious: 0.66 ± 0.07 (ratio significant: 1.00)
+		Clear melody/No melody: 0.62 ± 0.05 (ratio significant: 1.00)
+		Complex/Simple rhythm: 0.47 ± 0.09 (ratio significant: 1.00)
+		Dense/Sparse: 0.64 ± 0.08 (ratio significant: 1.00)
+		Strong beat/Weak beat: 0.62 ± 0.06 (ratio significant: 1.00)
+		Happy: 0.49 ± 0.14 (ratio significant: 0.90)
+		Beauty: 0.53 ± 0.11 (ratio significant: 0.90)
+		Calm: 0.64 ± 0.07 (ratio significant: 1.00)
+		Energizing: 0.48 ± 0.10 (ratio significant: 1.00)
+		Angry: 0.71 ± 0.07 (ratio significant: 1.00)
+		Triumphant: 0.37 ± 0.06 (ratio significant: 1.00)
+Average R2 for mid-level responses: 0.38 ± 0.12
+Average Pearson's r for mid-level responses: 0.64 ± 0.08
+Average R2 for emotion responses: 0.24 ± 0.13
+Average Pearson's r for emotion responses: 0.54 ± 0.09
