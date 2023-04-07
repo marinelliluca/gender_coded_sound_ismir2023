@@ -1,0 +1,52 @@
+Target + regressions + voice_gender, voice_exagg, voice_type, voice_age
+	Target classes: 3
+	Voice: False
+Drop non significant regressors: True
+Embeddings: openl3_music, (modality: music)
+	voice_gender F1: 0.76 ± 0.05
+	voice_exagg F1: 0.67 ± 0.06
+	voice_type F1: 0.73 ± 0.06
+	voice_age F1: 0.80 ± 0.06
+	target F1: 0.64 ± 0.07
+	R2:
+		Happy: 0.31 ± 0.19
+		Beauty: 0.35 ± 0.12
+		Calm: 0.40 ± 0.12
+		Energizing: 0.25 ± 0.12
+		Angry: 0.48 ± 0.12
+		Triumphant: 0.11 ± 0.13
+		Electric/Acoustic: 0.35 ± 0.11
+		Distorted/Clear: 0.48 ± 0.12
+		Many/Few Instruments: 0.16 ± 0.12
+		Loud/Soft: 0.58 ± 0.09
+		Heavy/Light: 0.70 ± 0.08
+		High/Low pitch: 0.42 ± 0.12
+		Punchy/Smooth: 0.54 ± 0.10
+		Harmonious/Disharmonious: 0.39 ± 0.13
+		Clear melody/No melody: 0.37 ± 0.11
+		Complex/Simple rhythm: 0.12 ± 0.13
+		Dense/Sparse: 0.47 ± 0.11
+		Strong beat/Weak beat: 0.48 ± 0.09
+	Pearson's r:
+		Happy: 0.62 ± 0.10 (ratio significant: 1.00)
+		Beauty: 0.63 ± 0.07 (ratio significant: 1.00)
+		Calm: 0.66 ± 0.07 (ratio significant: 1.00)
+		Energizing: 0.57 ± 0.07 (ratio significant: 1.00)
+		Angry: 0.72 ± 0.08 (ratio significant: 1.00)
+		Triumphant: 0.43 ± 0.10 (ratio significant: 0.74)
+		Electric/Acoustic: 0.63 ± 0.07 (ratio significant: 1.00)
+		Distorted/Clear: 0.73 ± 0.07 (ratio significant: 1.00)
+		Many/Few Instruments: 0.46 ± 0.11 (ratio significant: 0.76)
+		Loud/Soft: 0.78 ± 0.05 (ratio significant: 1.00)
+		Heavy/Light: 0.85 ± 0.04 (ratio significant: 1.00)
+		High/Low pitch: 0.69 ± 0.06 (ratio significant: 1.00)
+		Punchy/Smooth: 0.75 ± 0.06 (ratio significant: 1.00)
+		Harmonious/Disharmonious: 0.66 ± 0.07 (ratio significant: 1.00)
+		Clear melody/No melody: 0.65 ± 0.07 (ratio significant: 1.00)
+		Complex/Simple rhythm: 0.45 ± 0.09 (ratio significant: 0.78)
+		Dense/Sparse: 0.71 ± 0.07 (ratio significant: 1.00)
+		Strong beat/Weak beat: 0.71 ± 0.07 (ratio significant: 1.00)
+Average R2 for emotion responses: 0.32 ± 0.13
+Average Pearson's r for emotion responses: 0.61 ± 0.08
+Average R2 for mid-level responses: 0.42 ± 0.11
+Average Pearson's r for mid-level responses: 0.67 ± 0.07
