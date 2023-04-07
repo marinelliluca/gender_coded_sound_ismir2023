@@ -34,7 +34,6 @@ which_embeddings:
 voice_list:
   - false
   - true
-# uncomment to iterate over voice/no-voice
 drop_non_significant: true
 filmed: false
 max_epochs: 200
