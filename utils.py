@@ -219,7 +219,7 @@ class AssembleModel(nn.Module):
 #######################
 
 
-class FiLM(LightningModule):
+""" class FiLM(LightningModule):
     def __init__(self, num_features, num_outputs):
         super(FiLM, self).__init__()
         self.fc_gamma1 = nn.Linear(num_features, num_outputs)
@@ -241,6 +241,19 @@ class FiLM(LightningModule):
 
         gamma = self.fc_gamma2(F.relu(self.fc_gamma1(cond)))
         beta = self.fc_beta2(F.relu(self.fc_beta1(cond)))
+        return x * gamma + beta """
+# but it actually hurt performance
+
+class FiLM(LightningModule):
+    def __init__(self, num_features, num_outputs):
+        super(FiLM, self).__init__()
+        self.fc_gamma = nn.Linear(num_features, num_outputs)
+        self.fc_beta = nn.Linear(num_features, num_outputs)
+
+    def forward(self, x, cond):
+
+        gamma = F.relu(self.fc_gamma(cond))
+        beta = F.relu(self.fc_beta(cond))
         return x * gamma + beta
 
 
