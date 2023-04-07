@@ -350,7 +350,7 @@ class DynamicMultitasker(LightningModule):
             [F.cross_entropy(y_hat3[k], v, ignore_index=-1) for k, v in y_cls.items()]
         )
 
-        loss = loss_mid + loss_mid + self.cls_weighing * loss_cls
+        loss = loss_mid + loss_emo + self.cls_weighing * loss_cls
         self.log("train_loss", loss)
         return loss
 
@@ -366,7 +366,7 @@ class DynamicMultitasker(LightningModule):
             [F.cross_entropy(y_hat3[k], v, ignore_index=-1) for k, v in y_cls.items()]
         )
 
-        loss = loss_mid + loss_mid + self.cls_weighing * loss_cls
+        loss = loss_mid + loss_emo + self.cls_weighing * loss_cls
         self.log("val_loss", loss)
         return loss
 
