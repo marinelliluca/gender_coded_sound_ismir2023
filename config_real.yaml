@@ -1,0 +1,43 @@
+targets_list: 
+  - [Girls/women, Boys/men]
+  - [Girls/women, Mixed, Boys/men]
+cls_dict:
+  voice_gender:
+    - Feminine
+    - Masculine
+    - BOTH feminine and masculine voices
+    - There are no voices
+  voice_exagg:
+    - No, all voices are normal-sounding
+    - Yes a masculine voice is gender exaggerated
+    - Yes a feminine voice is gender exaggerated
+    - There are no voices
+  voice_type:
+    - BOTH spoken and sung
+    - Spoken
+    - Sung
+    - There are no voices
+  voice_age:
+    - Adults (including young adults)
+    - BOTH children and adults
+    - Children
+    - There are no voices
+# to perform only target classification set "cls_dict: {}"
+# and comment out the rest of the keys
+modality: music
+# 'music', 'speech', or 'video'
+which_embeddings:
+  - mfcc
+  - msd
+  - openl3_env
+  - openl3_music
+# 'mfcc', 'msd', 'openl3' for music, 'slow_fast' for video, 'hubert' for speech
+voice_list:
+  - false
+  - true
+drop_non_significant: true
+filmed: false
+max_epochs: 200
+repetitions: 5 
+folds: 5
+# random seed is not set in k-fold, so 5x5 "folds"

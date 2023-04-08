@@ -10,13 +10,20 @@ from utils import (
     DynamicMultitasker,
     load_embeddings_and_labels,
     embedding_dimensions,
-    results_to_text,
+    results_to_dict,
 )
 
 from sklearn.model_selection import KFold, train_test_split
 from sklearn.metrics import r2_score, f1_score
 from scipy.stats import pearsonr
 import yaml
+
+# import config from command line
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--config", type=str, default="config.yaml")
+
 
 # set torch seed
 torch.manual_seed(42)
@@ -28,23 +35,6 @@ torch.manual_seed(42)
 #     the signal coming from the class gender exaggeration, as well as the scales anger,
 #     beauty, etc, together with the overall target.
 
-# load config
-with open("config.yaml", "r") as stream:
-    config = yaml.safe_load(stream)
-
-config["targets_list"] = [
-    ["Girls/women", "Boys/men"],
-    ["Girls/women", "Mixed", "Boys/men"],
-]
-
-if config["target_behaviour"] == "iterate":
-    pass
-elif config["target_behaviour"] == "binary":
-    _ = config["targets_list"].pop(1)
-elif config["target_behaviour"] == "ternary":
-    _ = config["targets_list"].pop(0)
-else:
-    raise ValueError("target_behaviour not valid")
 
 #####################
 # Load ground truth #
@@ -73,7 +63,6 @@ if config["drop_non_significant"]:
 ###################
 # Repeated k-fold #
 ###################
-
 
 # iterate over the various configurations
 for targets_list in config["targets_list"]:
@@ -244,22 +233,19 @@ for targets_list in config["targets_list"]:
             all_ps_mid = np.array(all_ps_mid)
             all_ps_emo = np.array(all_ps_emo)
 
-            #################
-            # Print results #
-            #################
+            ## save results
 
-            # header
-            sec_classfc = [k for k in config["cls_dict"] if k != "target"] # secondary classifiers
-            text = f"Target + regressions + {', '.join(sec_classfc)}\n"
-            text += f"\tTarget classes: {len(targets_list)}\n"
-            text += f"\tVoice: {voice}\n"
-            text += (
-                f"Drop non significant regressors: {config['drop_non_significant']}\n"
-            )
-            text += f"Embeddings: {which}, (modality: {config['modality']})\n"
+            current_config_dict = { 
+                "targets": targets_list,
+                "modality": config["modality"],
+                "voice": voice,
+                "sec_classfc": sec_classfc,
+                "which": which,
+                "drop_non_significant": config["drop_non_significant"],
+            }
 
             # results
-            text += results_to_text(
+            results_dict += results_to_dict(
                 all_cls_f1s,
                 all_r2s_mid,
                 all_r2s_emo,
@@ -271,14 +257,18 @@ for targets_list in config["targets_list"]:
                 emotions_and_mid_level_df.columns[:n_emotions]
             )
 
-            print(text)
+            results_dict["config"].append(current_config_dict)
 
             # save results to file
 
-            # horrid way to get the filename
+            # horridly long filename
             foo = "_filmed" if config["filmed"] else ""
-            filename = f"results{foo}/targCls_{len(targets_list)}_{config['modality']}_{which}"
-            filename +=f"_voice_{voice}_NsecCls_{len(sec_classfc)}_dropNs_{config['drop_non_significant']}"
-            filename += f"_rep_{config['repetitions']}_fold_{config['folds']}.txt"
-            with open(filename, "a") as f:
-                f.write(text)
+            filename = (
+                f"results{foo}/targCls_{len(targets_list)}_{config['modality']}_{which}"
+                f"_voice_{voice}_NsecCls_{len(sec_classfc)}_dropNs_{config['drop_non_significant']}"
+                f"_rep_{config['repetitions']}_fold_{config['folds']}.txt"
+            )
+
+            with open(filename, "w") as f:
+                yaml.dump(results_dict, f)
+

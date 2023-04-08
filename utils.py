@@ -103,7 +103,8 @@ def load_embeddings_and_labels(
     return X, y_mid, y_emo, y_cls
 
 
-def results_to_text(
+
+def results_to_dict(
     all_cls_f1s,
     all_r2s_mid,
     all_r2s_emo,
@@ -114,63 +115,60 @@ def results_to_text(
     mid_cols,
     emo_cols,
 ):
-    text = ""
+    result = {}
+    
     # std across folds, mean across repetitions for each entry in cls_dict
+    result['f1'] = {}
     for k in all_cls_f1s:
-        text += f"\t{k} F1: {np.mean(all_cls_f1s[k]):.2f} ± {np.mean(np.std(all_cls_f1s[k], axis=1)):.2f}\n"
+        result['f1'][k] = {
+            'mean': np.mean(all_cls_f1s[k]),
+            'std': np.mean(np.std(all_cls_f1s[k], axis=1))
+        }
 
     # aggregate and print r2 values, knowing that all_r2s has shape (repetitions, folds, n_regressions)
-    text += "\tR2:\n"
-    for i, response in enumerate(mid_cols):
-        text += f"\t\t{response}: {np.mean(all_r2s_mid[:, :, i]):.2f} ± {np.std(all_r2s_mid[:, :, i]):.2f}\n"
-
-    for i, response in enumerate(emo_cols):
-        text += f"\t\t{response}: {np.mean(all_r2s_emo[:, :, i]):.2f} ± {np.std(all_r2s_emo[:, :, i]):.2f}\n"
-
-    text += "\tPearson's r:\n"
-    for i, response in enumerate(mid_cols):
+    result['r2'] = {}
+    for i, response in enumerate(mid_cols + emo_cols):
+        result['r2'][response] = {
+            'mean': np.mean(all_r2s_mid[:, :, i]),
+            'std': np.std(all_r2s_mid[:, :, i])
+        }
+    
+    result['pearson'] = {}
+    for i, response in enumerate(mid_cols + emo_cols):
         # ratio of significant values with holm-sidak correction
         is_significant = multipletests(
             all_ps_mid[:, :, i].flatten(), alpha=0.05, method="holm-sidak"
         )[0]
         rat_sig = np.sum(is_significant) / len(is_significant)
-        temp_txt = f"\t\t{response}: {np.mean(all_pear_mid[:, :, i]):.2f} ± {np.std(all_pear_mid[:, :, i]):.2f}"
-        temp_txt += f" (ratio significant: {rat_sig:.2f})\n"
-        text += temp_txt
+        
+        result['pearson'][response] = {
+            'mean': np.mean(all_pear_mid[:, :, i]),
+            'std': np.std(all_pear_mid[:, :, i]),
+            'ratio_significant': rat_sig
+        }
+    
+    result['average'] = {
+        'mid_r2': {
+            # mean across folds and repetitions
+            'mean': np.mean(all_r2s_mid),
+            # std across folds and repetitions, mean across mid-level responses
+            'std': np.mean(np.std(all_r2s_mid, axis=(0, 1)))
+        },
+        'mid_pears': {
+            'mean': np.mean(all_pear_mid),
+            'std': np.mean(np.std(all_pear_mid, axis=(0, 1)))
+        },
+        'emo_r2': {
+            'mean': np.mean(all_r2s_emo),
+            'std': np.mean(np.std(all_r2s_emo, axis=(0, 1)))
+        },
+        'emo_pears': {
+            'mean': np.mean(all_pear_emo),
+            'std': np.mean(np.std(all_pear_emo, axis=(0, 1)))
+        }
+    }
 
-    for i, response in enumerate(emo_cols):
-        # ratio of significant values with holm-sidak correction
-        is_significant = multipletests(
-            all_ps_emo[:, :, i].flatten(), alpha=0.05, method="holm-sidak"
-        )[0]
-        rat_sig = np.sum(is_significant) / len(is_significant)
-        temp_txt = f"\t\t{response}: {np.mean(all_pear_emo[:, :, i]):.2f} ± {np.std(all_pear_emo[:, :, i]):.2f}"
-        temp_txt += f" (ratio significant: {rat_sig:.2f})\n"
-        text += temp_txt
-
-    # across the mid-level responses
-    mean_mid_r2 = np.mean(all_r2s_mid)
-    std_mid_r2 = np.mean(np.std(all_r2s_mid, axis=(0, 1)))
-
-    mean_mid_pears = np.mean(all_pear_mid)
-    std_mid_pears = np.mean(np.std(all_pear_mid, axis=(0, 1)))
-
-    # across the emotion responses
-    mean_emo_r2 = np.mean(all_r2s_emo)
-    # std across folds and repetitions, mean across emotions
-    std_emo_r2 = np.mean(np.std(all_r2s_emo, axis=(0, 1)))
-
-    mean_emo_pears = np.mean(all_pear_emo)
-    std_emo_pears = np.mean(np.std(all_pear_emo, axis=(0, 1)))
-
-    text += (
-        f"Average R2 for mid-level responses: {mean_mid_r2:.2f} ± {std_mid_r2:.2f}\n"
-    )
-    text += f"Average Pearson's r for mid-level responses: {mean_mid_pears:.2f} ± {std_mid_pears:.2f}\n"
-    text += f"Average R2 for emotion responses: {mean_emo_r2:.2f} ± {std_emo_r2:.2f}\n"
-    text += f"Average Pearson's r for emotion responses: {mean_emo_pears:.2f} ± {std_emo_pears:.2f}\n"
-
-    return text
+    return result
 
 
 ###################
@@ -256,69 +254,12 @@ class FiLM(LightningModule):
         gamma = F.relu(self.fc_gamma(cond))
         beta = F.relu(self.fc_beta(cond))
         # limiting the range to [0, inf) seems to help
-        # contrary to what the paper says, why? have fun finding out
+        # contrary to what the paper says, why? 
+        # have fun finding out 
         # 
         # maybe unrelated, but
         # y_emo = y_mid * gamma(x) + beta(x)
         return x * gamma + beta
-        
-
-
-class EmbeddingsDataset(Dataset):
-    def __init__(self, X, y_reg, y_cls):
-        self.X = torch.from_numpy(X).float()
-        self.y_reg = torch.from_numpy(y_reg).float()
-        self.y_cls = torch.from_numpy(y_cls).long()
-
-    def __len__(self):
-        return self.X.shape[0]
-
-    def __getitem__(self, idx):
-        return self.X[idx], self.y_reg[idx], self.y_cls[idx]
-
-
-class MultipleRegressionWithSoftmax(LightningModule):
-    def __init__(self, input_dim, n_regressions, output_dim):
-        super().__init__()
-        self.linear = nn.Linear(input_dim, 128)
-        self.linear2 = nn.Linear(128, n_regressions)
-        self.linear3 = nn.Linear(128, output_dim)
-
-    def forward(self, x):
-        x = F.relu(self.linear(x))
-        x_reg = self.linear2(x)
-        x_cls = self.linear3(x)
-        return x_reg, x_cls
-
-    def training_step(self, batch, batch_idx):
-        x, y_reg, y_cls = batch
-        y_hat1, y_hat2 = self(x)
-
-        loss1 = nn.MSELoss()(y_hat1, y_reg)
-
-        # Handle missing data in the cost function
-        loss2 = F.cross_entropy(y_hat2, y_cls, ignore_index=-1)
-
-        loss = loss1 + loss2
-        self.log("train_loss", loss)
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        x, y_reg, y_cls = batch
-        y_hat1, y_hat2 = self(x)
-
-        loss1 = nn.MSELoss()(y_hat1, y_reg)
-
-        # Handle missing data in the cost function
-        loss2 = F.cross_entropy(y_hat2, y_cls, ignore_index=-1)
-
-        loss = loss1 + loss2
-        self.log("val_loss", loss)
-        return loss
-
-    def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=1e-3, weight_decay=1e-5)  # type: ignore
-
 
 class DynamicDataset(Dataset):
     def __init__(self, X, y_mid, y_emo, y_cls):
