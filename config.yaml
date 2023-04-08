@@ -1,6 +1,6 @@
 targets_list: 
   - [Girls/women, Boys/men]
-cls_dict:
+cls_dict: {}
 # to perform only target classification set "cls_dict: {}"
 # and comment out the rest of the keys
 modality: music
@@ -10,10 +10,9 @@ which_embeddings:
 # 'mfcc', 'msd', 'openl3' for music, 'slow_fast' for video, 'hubert' for speech
 voice_list:
   - false
-  - true
 drop_non_significant: true
 filmed: false
-max_epochs: 200
-repetitions: 5 
+max_epochs: 1
+repetitions: 1 
 folds: 5
 # random seed is not set in k-fold, so 5x5 "folds"
