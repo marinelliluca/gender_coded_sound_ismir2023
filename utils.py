@@ -50,7 +50,10 @@ def load_embeddings_and_labels(
     """Load embeddings and labels for a given modality and embedding type.
     Args:
         groundtruth_df (pd.DataFrame): ground truth dataframe containing the classes
-        emotions_and_mid_level_df (pd.DataFrame): dataframe containing the regressors
+        emotions_and_mid_level_df (pd.DataFrame): dataframe containing the responses
+
+            ===>> NB: emotions first, then mid-level features
+
         which (str): which embeddings to load
         modality (str): which modality to load
         voice (bool): whether to load voice or no-voice embeddings
