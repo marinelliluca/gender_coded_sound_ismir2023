@@ -128,24 +128,43 @@ def results_to_dict(
     # aggregate and print r2 values, knowing that all_r2s has shape (repetitions, folds, n_regressions)
     result['r2'] = {}
     for i, response in enumerate(mid_cols + emo_cols):
-        result['r2'][response] = {
-            'mean': np.mean(all_r2s_mid[:, :, i]),
-            'std': np.std(all_r2s_mid[:, :, i])
-        }
-    
+        if i < len(mid_cols):
+            result['r2'][response] = {
+                'mean': np.mean(all_r2s_mid[:, :, i]),
+                'std': np.std(all_r2s_mid[:, :, i])
+            }
+        else:
+            result['r2'][response] = {
+                'mean': np.mean(all_r2s_emo[:, :, i - len(mid_cols)]),
+                'std': np.std(all_r2s_emo[:, :, i - len(mid_cols)])
+            }
+
     result['pearson'] = {}
     for i, response in enumerate(mid_cols + emo_cols):
-        # ratio of significant values with holm-sidak correction
-        is_significant = multipletests(
-            all_ps_mid[:, :, i].flatten(), alpha=0.05, method="holm-sidak"
-        )[0]
-        rat_sig = np.sum(is_significant) / len(is_significant)
-        
-        result['pearson'][response] = {
-            'mean': np.mean(all_pear_mid[:, :, i]),
-            'std': np.std(all_pear_mid[:, :, i]),
-            'ratio_significant': rat_sig
-        }
+
+        if i < len(mid_cols):
+            # ratio of significant values with holm-sidak correction
+            is_significant = multipletests(
+                all_ps_mid[:, :, i].flatten(), alpha=0.05, method="holm-sidak"
+            )[0]
+            rat_sig = np.sum(is_significant) / len(is_significant)
+
+            result['pearson'][response] = {
+                'mean': np.mean(all_pear_mid[:, :, i]),
+                'std': np.std(all_pear_mid[:, :, i]),
+                'ratio_significant': rat_sig
+            }
+        else:
+            is_significant = multipletests(
+                all_ps_emo[:, :, i - len(mid_cols)].flatten(), alpha=0.05, method="holm-sidak"
+            )[0]
+            rat_sig = np.sum(is_significant) / len(is_significant)
+
+            result['pearson'][response] = {
+                'mean': np.mean(all_pear_emo[:, :, i - len(mid_cols)]),
+                'std': np.std(all_pear_emo[:, :, i - len(mid_cols)]),
+                'ratio_significant': rat_sig
+            }
     
     result['average'] = {
         'mid_r2': {

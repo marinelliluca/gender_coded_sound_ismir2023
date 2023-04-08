@@ -16,26 +16,26 @@ from utils import (
 from sklearn.model_selection import KFold, train_test_split
 from sklearn.metrics import r2_score, f1_score
 from scipy.stats import pearsonr
-import yaml
-
-# import config from command line
+import yaml, json
 import argparse
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--config", type=str, default="config.yaml")
 
+args = parser.parse_args()
+with open(args.config, "r") as f:
+    config = yaml.safe_load(f)
 
-# set torch seed
-torch.manual_seed(42)
 
 # TODO:
 #   - The routing branch is a good idea (different embeddings for different targets).
 #     It must not be done by modality, but by voice or no-voice.
-#   - a way to do include critical analysis in the loss function is to employ a gain on
+#   - a way to include critical analysis in the loss function is to employ a gain on
 #     the signal coming from the class gender exaggeration, as well as the scales anger,
 #     beauty, etc, together with the overall target.
 
-
+torch.manual_seed(42)
 #####################
 # Load ground truth #
 #####################
@@ -65,210 +65,210 @@ if config["drop_non_significant"]:
 ###################
 
 # iterate over the various configurations
-for targets_list in config["targets_list"]:
-    for which in config["which_embeddings"]:
-        for voice in config["voice_list"]:
+for filmed in config["filmed_list"]:
+    for targets_list in config["targets_list"]:
+        for which in config["which_embeddings"]:
+            for voice in config["voice_list"]:
 
-            # add current main classification (binary or ternary)
-            config["cls_dict"]["target"] = targets_list
+                # add current status to config
+                config["cls_dict"]["target"] = targets_list
 
-            # load data
-            X, y_mid, y_emo, y_cls = load_embeddings_and_labels(
-                groundtruth_df,
-                emotions_and_mid_level_df,
-                which,
-                config["modality"],
-                voice,
-                config["cls_dict"],
-                n_emotions,
-            )
+                # load data
+                X, y_mid, y_emo, y_cls = load_embeddings_and_labels(
+                    groundtruth_df,
+                    emotions_and_mid_level_df,
+                    which,
+                    config["modality"],
+                    voice,
+                    config["cls_dict"],
+                    n_emotions,
+                )
 
-            # set the parameters for the model
-            params = {
-                "input_dim": X.shape[1],
-                "n_emo": y_emo.shape[1],
-                "n_mid": y_mid.shape[1],
-                "cls_dict": config["cls_dict"],
-                "filmed": config["filmed"],
-            }
+                # set the parameters for the model
+                params = {
+                    "input_dim": X.shape[1],
+                    "n_emo": y_emo.shape[1],
+                    "n_mid": y_mid.shape[1],
+                    "cls_dict": config["cls_dict"],
+                    "filmed": filmed,
+                }
 
-            # prepare the results
-            all_cls_f1s = {k: [] for k in config["cls_dict"]}
-            all_r2s_mid = []
-            all_r2s_emo = []
-            all_pear_mid = []
-            all_pear_emo = []
-            all_ps_mid = []
-            all_ps_emo = []
+                # prepare the results
+                all_cls_f1s = {k: [] for k in config["cls_dict"]}
+                all_r2s_mid = []
+                all_r2s_emo = []
+                all_pear_mid = []
+                all_pear_emo = []
+                all_ps_mid = []
+                all_ps_emo = []
 
-            for _ in range(config["repetitions"]):
-                kf = KFold(
-                    n_splits=config["folds"], shuffle=True
-                )  # NO RANDOM SEED, get a new split each time
+                for _ in range(config["repetitions"]):
+                    kf = KFold(
+                        n_splits=config["folds"], shuffle=True
+                    )  # NO RANDOM SEED, get a new split each time
 
-                cls_f1s = {k: [] for k in config["cls_dict"]}
-                r2s_mid = []
-                r2s_emo = []
-                pears_mid = []
-                pears_emo = []
-                ps_mid = []
-                ps_emo = []
+                    cls_f1s = {k: [] for k in config["cls_dict"]}
+                    r2s_mid = []
+                    r2s_emo = []
+                    pears_mid = []
+                    pears_emo = []
+                    ps_mid = []
+                    ps_emo = []
 
-                for train_index, test_index in kf.split(X):
-                    test_index, val_index = train_test_split(test_index, test_size=0.5)
+                    for train_index, test_index in kf.split(X):
+                        test_index, val_index = train_test_split(test_index, test_size=0.5)
 
-                    # get the split
-                    X_train, X_test, X_val = X[train_index], X[test_index], X[val_index]
-                    y_mid_train, y_mid_test, y_mid_val = (
-                        y_mid[train_index],
-                        y_mid[test_index],
-                        y_mid[val_index],
-                    )
-                    y_emo_train, y_emo_test, y_emo_val = (
-                        y_emo[train_index],
-                        y_emo[test_index],
-                        y_emo[val_index],
-                    )
-                    y_cls_train, y_cls_test, y_cls_val = (
-                        {k: y_cls[k][train_index] for k in y_cls},
-                        {k: y_cls[k][test_index] for k in y_cls},
-                        {k: y_cls[k][val_index] for k in y_cls},
-                    )
-                    train_dataset = DynamicDataset(
-                        X_train, y_mid_train, y_emo_train, y_cls_train
-                    )
-                    val_dataset = DynamicDataset(X_val, y_mid_val, y_emo_val, y_cls_val)
-                    train_loader = DataLoader(
-                        train_dataset, batch_size=8, shuffle=True, num_workers=1
-                    )
-                    val_loader = DataLoader(
-                        val_dataset, batch_size=8, shuffle=False, num_workers=1
-                    )
-
-                    # train
-                    model = DynamicMultitasker(**params)
-
-                    checkpoint_callback = ModelCheckpoint(monitor="val_loss")
-                    trainer = pl.Trainer(
-                        max_epochs=config["max_epochs"],
-                        callbacks=[
-                            checkpoint_callback,
-                            EarlyStopping(monitor="val_loss", patience=30),
-                        ],
-                        enable_progress_bar=False,
-                        accelerator="gpu",
-                        devices=1,
-                    )
-                    trainer.fit(model, train_loader, val_loader)
-
-                    # load best model
-                    model = model.load_from_checkpoint(
-                        checkpoint_callback.best_model_path, **params
-                    )
-
-                    # evaluate on test set
-                    model.eval()
-                    with torch.no_grad():
-                        y_mid_pred, y_emo_pred, y_cls_pred = model(
-                            torch.from_numpy(X_test).float()
+                        # get the split
+                        X_train, X_test, X_val = X[train_index], X[test_index], X[val_index]
+                        y_mid_train, y_mid_test, y_mid_val = (
+                            y_mid[train_index],
+                            y_mid[test_index],
+                            y_mid[val_index],
                         )
+                        y_emo_train, y_emo_test, y_emo_val = (
+                            y_emo[train_index],
+                            y_emo[test_index],
+                            y_emo[val_index],
+                        )
+                        y_cls_train, y_cls_test, y_cls_val = (
+                            {k: y_cls[k][train_index] for k in y_cls},
+                            {k: y_cls[k][test_index] for k in y_cls},
+                            {k: y_cls[k][val_index] for k in y_cls},
+                        )
+                        train_dataset = DynamicDataset(
+                            X_train, y_mid_train, y_emo_train, y_cls_train
+                        )
+                        val_dataset = DynamicDataset(X_val, y_mid_val, y_emo_val, y_cls_val)
+                        train_loader = DataLoader(
+                            train_dataset, batch_size=8, shuffle=True, num_workers=1
+                        )
+                        val_loader = DataLoader(
+                            val_dataset, batch_size=8, shuffle=False, num_workers=1
+                        )
+
+                        # train
+                        model = DynamicMultitasker(**params)
+
+                        checkpoint_callback = ModelCheckpoint(monitor="val_loss")
+                        trainer = pl.Trainer(
+                            max_epochs=config["max_epochs"],
+                            callbacks=[
+                                checkpoint_callback,
+                                EarlyStopping(monitor="val_loss", patience=30),
+                            ],
+                            enable_progress_bar=False,
+                            accelerator="gpu",
+                            devices=1,
+                        )
+                        trainer.fit(model, train_loader, val_loader)
+
+                        # load best model
+                        model = model.load_from_checkpoint(
+                            checkpoint_callback.best_model_path, **params
+                        )
+
+                        # evaluate on test set
+                        model.eval()
+                        with torch.no_grad():
+                            y_mid_pred, y_emo_pred, y_cls_pred = model(
+                                torch.from_numpy(X_test).float()
+                            )
+
+                        for k in config["cls_dict"]:
+                            y_pred_temp = y_cls_pred[k]
+                            y_test_temp = y_cls_test[k]
+
+                            skip_unlabelled = y_test_temp != -1
+                            y_pred_temp = torch.argmax(y_pred_temp, dim=1).numpy()[
+                                skip_unlabelled # <<<<<<<<<<<<<<<<<<<<<
+                            ]
+                            y_test_temp = y_test_temp[skip_unlabelled]
+                            cls_f1s[k].append(
+                                f1_score(y_test_temp, y_pred_temp, average="weighted")
+                            )
+
+                        y_mid_pred = y_mid_pred.numpy()
+                        y_emo_pred = y_emo_pred.numpy()
+                        r2_mid = r2_score(y_mid_test, y_mid_pred, multioutput="raw_values")
+                        r2s_mid.append(r2_mid)
+                        r2_emo = r2_score(y_emo_test, y_emo_pred, multioutput="raw_values")
+                        r2s_emo.append(r2_emo)
+
+                        r_mid = [
+                            pearsonr(y_mid_test[:, i], y_mid_pred[:, i])[0]
+                            for i in range(y_mid_test.shape[1])
+                        ]
+                        r_emo = [
+                            pearsonr(y_emo_test[:, i], y_emo_pred[:, i])[0]
+                            for i in range(y_emo_test.shape[1])
+                        ]
+                        p_mid = [
+                            pearsonr(y_mid_test[:, i], y_mid_pred[:, i])[1]
+                            for i in range(y_mid_test.shape[1])
+                        ]
+                        p_emo = [
+                            pearsonr(y_emo_test[:, i], y_emo_pred[:, i])[1]
+                            for i in range(y_emo_test.shape[1])
+                        ]
+                        pears_emo.append(r_emo)
+                        pears_mid.append(r_mid)
+                        ps_emo.append(p_emo)
+                        ps_mid.append(p_mid)
 
                     for k in config["cls_dict"]:
-                        y_pred_temp = y_cls_pred[k]
-                        y_test_temp = y_cls_test[k]
+                        all_cls_f1s[k].append(cls_f1s[k])
+                    all_r2s_emo.append(r2s_emo)
+                    all_r2s_mid.append(r2s_mid)
+                    all_pear_emo.append(pears_emo)
+                    all_pear_mid.append(pears_mid)
+                    all_ps_emo.append(ps_emo)
+                    all_ps_mid.append(ps_mid)
 
-                        skip_unlabelled = y_test_temp != -1
-                        y_pred_temp = torch.argmax(y_pred_temp, dim=1).numpy()[
-                            skip_unlabelled # <<<<<<<<<<<<<<<<<<<<<
-                        ]
-                        y_test_temp = y_test_temp[skip_unlabelled]
-                        cls_f1s[k].append(
-                            f1_score(y_test_temp, y_pred_temp, average="weighted")
-                        )
-
-                    y_mid_pred = y_mid_pred.numpy()
-                    y_emo_pred = y_emo_pred.numpy()
-                    r2_mid = r2_score(y_mid_test, y_mid_pred, multioutput="raw_values")
-                    r2s_mid.append(r2_mid)
-                    r2_emo = r2_score(y_emo_test, y_emo_pred, multioutput="raw_values")
-                    r2s_emo.append(r2_emo)
-
-                    r_mid = [
-                        pearsonr(y_mid_test[:, i], y_mid_pred[:, i])[0]
-                        for i in range(y_mid_test.shape[1])
-                    ]
-                    r_emo = [
-                        pearsonr(y_emo_test[:, i], y_emo_pred[:, i])[0]
-                        for i in range(y_emo_test.shape[1])
-                    ]
-                    p_mid = [
-                        pearsonr(y_mid_test[:, i], y_mid_pred[:, i])[1]
-                        for i in range(y_mid_test.shape[1])
-                    ]
-                    p_emo = [
-                        pearsonr(y_emo_test[:, i], y_emo_pred[:, i])[1]
-                        for i in range(y_emo_test.shape[1])
-                    ]
-                    pears_emo.append(r_emo)
-                    pears_mid.append(r_mid)
-                    ps_emo.append(p_emo)
-                    ps_mid.append(p_mid)
-
+                # convert to numpy arrays
                 for k in config["cls_dict"]:
-                    all_cls_f1s[k].append(cls_f1s[k])
-                all_r2s_emo.append(r2s_emo)
-                all_r2s_mid.append(r2s_mid)
-                all_pear_emo.append(pears_emo)
-                all_pear_mid.append(pears_mid)
-                all_ps_emo.append(ps_emo)
-                all_ps_mid.append(ps_mid)
+                    all_cls_f1s[k] = np.array(all_cls_f1s[k])
+                all_r2s_mid = np.array(all_r2s_mid)
+                all_r2s_emo = np.array(all_r2s_emo)
+                all_pear_mid = np.array(all_pear_mid)
+                all_pear_emo = np.array(all_pear_emo)
+                all_ps_mid = np.array(all_ps_mid)
+                all_ps_emo = np.array(all_ps_emo)
 
-            # convert to numpy arrays
-            for k in config["cls_dict"]:
-                all_cls_f1s[k] = np.array(all_cls_f1s[k])
-            all_r2s_mid = np.array(all_r2s_mid)
-            all_r2s_emo = np.array(all_r2s_emo)
-            all_pear_mid = np.array(all_pear_mid)
-            all_pear_emo = np.array(all_pear_emo)
-            all_ps_mid = np.array(all_ps_mid)
-            all_ps_emo = np.array(all_ps_emo)
+                ## save results
 
-            ## save results
+                current_config_dict = { 
+                    "modality": config["modality"],
+                    "voice": voice,
+                    "classifications": config["cls_dict"],
+                    "which_embeddings": which,
+                    "drop_non_significant": config["drop_non_significant"],
+                }
 
-            current_config_dict = { 
-                "targets": targets_list,
-                "modality": config["modality"],
-                "voice": voice,
-                "sec_classfc": sec_classfc,
-                "which": which,
-                "drop_non_significant": config["drop_non_significant"],
-            }
+                # results
+                results_dict = results_to_dict(
+                    all_cls_f1s,
+                    all_r2s_mid,
+                    all_r2s_emo,
+                    all_pear_mid,
+                    all_pear_emo,
+                    all_ps_mid,
+                    all_ps_emo,
+                    list(emotions_and_mid_level_df.columns[n_emotions:]),
+                    list(emotions_and_mid_level_df.columns[:n_emotions]),
+                )
 
-            # results
-            results_dict += results_to_dict(
-                all_cls_f1s,
-                all_r2s_mid,
-                all_r2s_emo,
-                all_pear_mid,
-                all_pear_emo,
-                all_ps_mid,
-                all_ps_emo,
-                emotions_and_mid_level_df.columns[n_emotions:],
-                emotions_and_mid_level_df.columns[:n_emotions]
-            )
+                results_dict["config"] = current_config_dict
 
-            results_dict["config"].append(current_config_dict)
+                # save results to file
 
-            # save results to file
+                # horridly long filename
+                foo = "_filmed" if filmed else ""
+                filename = (
+                    f"results{foo}/targCls_{len(targets_list)}_{config['modality']}_{which}"
+                    f"_voice_{voice}_TotCls_{len(config['cls_dict'].keys())}_dropNs_{config['drop_non_significant']}"
+                    f"_rep_{config['repetitions']}_fold_{config['folds']}.json"
+                )
 
-            # horridly long filename
-            foo = "_filmed" if config["filmed"] else ""
-            filename = (
-                f"results{foo}/targCls_{len(targets_list)}_{config['modality']}_{which}"
-                f"_voice_{voice}_NsecCls_{len(sec_classfc)}_dropNs_{config['drop_non_significant']}"
-                f"_rep_{config['repetitions']}_fold_{config['folds']}.txt"
-            )
-
-            with open(filename, "w") as f:
-                yaml.dump(results_dict, f)
+                with open(filename, "w") as f:
+                    json.dump(results_dict, f)
 
