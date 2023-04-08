@@ -12,6 +12,7 @@ from music.frontend import Frontend
 from statsmodels.stats.multitest import multipletests
 import numpy as np
 import yaml
+from tabulate import tabulate
 
 
 # references for loading the embeddings
@@ -189,6 +190,77 @@ def results_to_dict(
 
     return result
 
+def display_results(dictionary):
+    rows = []
+    config_rows = []
+    f1_rows = []
+    r2_rows = []
+    pearson_rows = []
+    average_rows = []
+    for key, value in dictionary.items():
+        if key == 'config':
+            target_rows = config_rows
+        elif key == 'f1':
+            target_rows = f1_rows
+            
+            # aggregate secondary f1 scores
+            f1_secondary_means = [v['mean'] for k,v in value.items() if k != 'target']
+            f1_secondary_stds = [v['std'] for k,v in value.items() if k != 'target']
+            
+        elif key == 'r2':
+            target_rows = r2_rows
+        elif key == 'pearson':
+            target_rows = pearson_rows
+        elif key == 'average':
+            target_rows = average_rows
+        else:
+            target_rows = rows
+        if isinstance(value, dict):
+            for subkey, subvalue in value.items():
+                if isinstance(subvalue, dict):
+                    for subsubkey, subsubvalue in subvalue.items():
+                        target_rows.append([key, subkey, subsubkey, format_value(subsubvalue)])
+                        key = ''
+                        subkey = ''
+                else:
+                    target_rows.append([key, subkey, '', format_value(subvalue)])
+                    key = ''
+        else:
+            target_rows.append([key, '', '', format_value(value)])
+    
+    # add f1 secondary scores
+    average_rows.append(['', 'secondary f1', 'mean', format_value(np.mean(f1_secondary_means))])
+    average_rows.append(['', '', 'std', format_value(np.mean(f1_secondary_stds))])
+
+    final_rows = config_rows + average_rows + f1_rows + r2_rows + pearson_rows + rows
+    print(tabulate(final_rows,headers=['Key', 'Subkey', 'Sub-subkey', 'Value']))
+    #return average_rows
+
+def format_value(value):
+    if isinstance(value,(int,float)):
+        return f'{value:.2f}'
+    elif isinstance(value,list):
+        return f'{len(value)} cls'
+    else:
+        return value
+
+def display_structure(dictionary):
+    rows = []
+    for key, value in dictionary.items():
+        if isinstance(value, dict):
+            for subkey, subvalue in value.items():
+                if isinstance(subvalue, dict):
+                    for subsubkey, subsubvalue in subvalue.items():
+                        rows.append([key, subkey, subsubkey, type(subsubvalue).__name__])
+                        key = ''
+                        subkey = ''
+                else:
+                    rows.append([key, subkey, '', type(subvalue).__name__])
+                    key = ''
+                    subkey = ''
+        else:
+            rows.append([key, '', '', type(value).__name__])
+    print(tabulate(rows, headers=['Key', 'Subkey', 'Sub-subkey', 'Type']))
 
 ###################
 # MSD model utils #
