@@ -37,7 +37,7 @@ voice_list:
   - true
 filmed_list: 
   - false
-  - true
+#  - true # I still think it can work... 
 drop_non_significant: true
 max_epochs: 200
 repetitions: 5 
