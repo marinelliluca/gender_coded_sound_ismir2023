@@ -310,31 +310,6 @@ class AssembleModel(nn.Module):
 # class and reg utils #
 #######################
 
-
-""" class FiLM(LightningModule):
-    def __init__(self, num_features, num_outputs):
-        super(FiLM, self).__init__()
-        self.fc_gamma1 = nn.Linear(num_features, num_outputs)
-        self.fc_beta1 = nn.Linear(num_features, num_outputs)
-
-        self.fc_gamma2 = nn.Linear(num_outputs, num_outputs)
-        self.fc_beta2 = nn.Linear(num_outputs, num_outputs)
-
-    def forward(self, x, cond):
-        
-        # (Thanks Ben for the help with understanding this)
-        # with the relu activation, after the first layer we are removing its ability to 
-        # (a) invert the feature axis and 
-        # (b) apply negative shifts
-        # so we need to add a second layer to get these back
-        # if you apply another linear layer after the relu you will get the nonlinearity 
-        # (which is presumably helping with your specific task) 
-        # and also you will get the full (-∞, ∞) output range
-
-        gamma = self.fc_gamma2(F.relu(self.fc_gamma1(cond)))
-        beta = self.fc_beta2(F.relu(self.fc_beta1(cond)))
-        return x * gamma + beta """
-
 class FiLM(LightningModule):
     def __init__(self, num_features, num_outputs):
         super(FiLM, self).__init__()
