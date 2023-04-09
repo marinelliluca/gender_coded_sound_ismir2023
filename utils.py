@@ -13,7 +13,9 @@ from statsmodels.stats.multitest import multipletests
 import numpy as np
 import yaml
 from tabulate import tabulate
-
+import pandas as pd
+import glob
+import json
 
 # references for loading the embeddings
 with open("fn_suffix.yaml", "r") as stream:
@@ -261,6 +263,55 @@ def display_structure(dictionary):
         else:
             rows.append([key, '', '', type(value).__name__])
     print(tabulate(rows, headers=['Key', 'Subkey', 'Sub-subkey', 'Type']))
+
+def experiments_to_dict_of_dfs(folder, rep, fold): 
+    target_task = ["Binary", "Ternary"]
+    voice_task = ["Voice", "No voice"]
+    metrics = ["Target F1", "Avg. secondary F1", "Avg. R2 emotions", "Avg. r emotions", "Avg. R2 mid-level", "Avg. r mid-level"]
+    columns = ["Embeddings"] + metrics
+
+    dict_of_dfs = {
+        tt: {
+            vt: pd.DataFrame(columns=columns)
+            for vt in voice_task
+        }
+        for tt in target_task
+    }
+
+    for fn in glob.glob(f"./{folder}/*_rep_{rep}_fold_{fold}.json"):
+        with open(fn) as f:
+            results = json.load(f)
+
+        # Compute average secondary F1 score
+        f1_secondary_means = [v['mean'] for k,v in results["f1"].items() if k != 'target']
+        f1_secondary_stds = [v['std'] for k,v in results["f1"].items() if k != 'target']
+        results["average"]["secondary f1"] = { "mean": np.mean(f1_secondary_means), "std": np.mean(f1_secondary_stds)}
+
+        # Extract relevant metrics
+        row = {
+            "Embeddings": results["config"]["which_embeddings"],
+            "Target F1": f'{results["f1"]["target"]["mean"]:.2f} ± {results["f1"]["target"]["std"]:.2f}',
+            "Avg. secondary F1": f'{results["average"]["secondary f1"]["mean"]:.2f} ± {results["average"]["secondary f1"]["std"]:.2f}',
+            "Avg. R2 emotions": f'{results["average"]["emo_r2"]["mean"]:.2f} ± {results["average"]["emo_r2"]["std"]:.2f}',
+            "Avg. r emotions": f'{results["average"]["emo_pears"]["mean"]:.2f} ± {results["average"]["emo_pears"]["std"]:.2f}',
+            "Avg. R2 mid-level": f'{results["average"]["mid_r2"]["mean"]:.2f} ± {results["average"]["mid_r2"]["std"]:.2f}',
+            "Avg. r mid-level": f'{results["average"]["mid_pears"]["mean"]:.2f} ± {results["average"]["mid_pears"]["std"]:.2f}'
+        }
+
+        # Determine indices for dict_of_dfs
+        tt = "Binary" if len(results["config"]["classifications"]["target"]) == 2 else "Ternary"
+        vt = "Voice" if results["config"]["voice"] else "No voice"
+
+        # Add row to the appropriate DataFrame
+        df = dict_of_dfs[tt][vt].copy()
+        dict_of_dfs[tt][vt] = pd.concat([df, pd.DataFrame(row, index=[0])], ignore_index=True)
+
+    # Sort DataFrames and set index
+    for tt in dict_of_dfs:
+        for vt in dict_of_dfs[tt]:
+            dict_of_dfs[tt][vt].sort_values(by="Embeddings").set_index("Embeddings", inplace=True)
+
+    return dict_of_dfs
 
 ###################
 # MSD model utils #
