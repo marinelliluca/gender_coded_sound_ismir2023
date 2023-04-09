@@ -317,13 +317,9 @@ class FiLM(LightningModule):
         self.fc_beta = nn.Linear(num_features, num_outputs)
 
     def forward(self, x, cond):
-        gamma = F.relu(self.fc_gamma(cond))
-        beta = F.relu(self.fc_beta(cond))
-        # limiting the range to [0, inf) seems to help
-        # contrary to what the paper says, why? 
-        # have fun finding out 
-        # 
-        # maybe unrelated, but
+        gamma = self.fc_gamma(cond)
+        beta = self.fc_beta(cond)
+        # the idea was to have the following:
         # y_emo = y_mid * gamma(x) + beta(x)
         return x * gamma + beta
 
