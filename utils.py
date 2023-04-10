@@ -266,15 +266,12 @@ def display_structure(dictionary):
 
 def experiments_to_dict_of_dfs(folder, rep, fold): 
     target_task = ["Binary", "Ternary"]
-    voice_task = ["Voice", "No voice"]
+    voice_task = ["yes", "no"]
     metrics = ["Target F1", "Avg. secondary F1", "Avg. R2 emotions", "Avg. r emotions", "Avg. R2 mid-level", "Avg. r mid-level"]
-    columns = ["Embeddings"] + metrics
+    columns = ["Embeddings", "Voice"] + metrics
 
     dict_of_dfs = {
-        tt: {
-            vt: pd.DataFrame(columns=columns)
-            for vt in voice_task
-        }
+        tt: pd.DataFrame(columns=columns)
         for tt in target_task
     }
 
@@ -290,6 +287,7 @@ def experiments_to_dict_of_dfs(folder, rep, fold):
         # Extract relevant metrics
         row = {
             "Embeddings": results["config"]["which_embeddings"],
+            "Voice": "yes" if results["config"]["voice"] else "no",
             "Target F1": f'{results["f1"]["target"]["mean"]:.2f} ± {results["f1"]["target"]["std"]:.2f}',
             "Avg. secondary F1": f'{results["average"]["secondary f1"]["mean"]:.2f} ± {results["average"]["secondary f1"]["std"]:.2f}',
             "Avg. R2 emotions": f'{results["average"]["emo_r2"]["mean"]:.2f} ± {results["average"]["emo_r2"]["std"]:.2f}',
@@ -298,18 +296,19 @@ def experiments_to_dict_of_dfs(folder, rep, fold):
             "Avg. r mid-level": f'{results["average"]["mid_pears"]["mean"]:.2f} ± {results["average"]["mid_pears"]["std"]:.2f}'
         }
 
+        # reduce the width of the table by taking out the 0.
+        row = {k: v.replace("0.", ".") for k, v in row.items()}
+
         # Determine indices for dict_of_dfs
         tt = "Binary" if len(results["config"]["classifications"]["target"]) == 2 else "Ternary"
-        vt = "Voice" if results["config"]["voice"] else "No voice"
 
         # Add row to the appropriate DataFrame
-        df = dict_of_dfs[tt][vt].copy()
-        dict_of_dfs[tt][vt] = pd.concat([df, pd.DataFrame(row, index=[0])], ignore_index=True)
+        df = dict_of_dfs[tt].copy()
+        dict_of_dfs[tt] = pd.concat([df, pd.DataFrame(row, index=[0])], ignore_index=True)
 
-    # Sort DataFrames and set index
     for tt in dict_of_dfs:
-        for vt in dict_of_dfs[tt]:
-            dict_of_dfs[tt][vt].sort_values(by="Embeddings").set_index("Embeddings", inplace=True)
+        df = dict_of_dfs[tt].copy()
+        dict_of_dfs[tt] = df.pivot(index="Embeddings", columns="Voice")
 
     return dict_of_dfs
 
