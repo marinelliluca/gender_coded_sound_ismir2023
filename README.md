@@ -11,13 +11,22 @@ PyTorch implementation of a multi-task learning model for music gender classific
 
 ## Summary
 
-Datasets: 
-- MFCCs (using librosa, 20 bands, delta and delta deltas), MSD model (256 dimensions, re-implementation of \cite{won2019toward}), OpenL3 embeddings (512 dimensions, \cite{cramer2019look} conda package).
 
 Data Processing: 
-- Soundtracks trimmed (last 5 seconds removed), features averaged across trimmed soundtrack.
+- Soundtracks trimmed (last 5 seconds removed), 
+- features averaged across trimmed soundtrack
+
+Embeddings: 
+- MFCCs (using librosa, 20 bands, delta and delta deltas)
+- MSD model (256 dimensions, re-implementation of \cite{won2019toward})
+- OpenL3 embeddings (512 dimensions, \cite{cramer2019look} conda package).
+
 Training: 
-- Model checkpoint, early stopping (patience: 30 epochs, max: 200), 5-fold cross-validation, AdamW optimizer.
+- Model checkpoint
+- early stopping (patience: 30 epochs, max: 200)
+- 5x 5-fold cross-validation
+- AdamW optimizer
+
 Multi-task Learning: 
 - aesthetic emotions
 - music perceptual features
