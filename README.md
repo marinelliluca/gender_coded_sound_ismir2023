@@ -21,7 +21,7 @@ Embeddings:
 - MSD model (256 dimensions, re-implementation of \cite{won2019toward})
 - OpenL3 embeddings (512 dimensions, \cite{cramer2019look} conda package).
 
-Training: 
+Training and evaluation: 
 - Model checkpoint
 - early stopping (patience: 30 epochs, max: 200)
 - 5x 5-fold cross-validation
