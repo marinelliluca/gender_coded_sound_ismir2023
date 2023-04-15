@@ -2,7 +2,7 @@
 
 License: MIT
 
-PyTorch implementation of a multi-task learning model for music gender classification in children's advertising 🎶📺
+PyTorch implementation of a multi-task learning model for music gender analysis in toy advertising 🎶📺
 
 ## Reference
 [Paper title, Journal/Conference, Year, Link - If available]
