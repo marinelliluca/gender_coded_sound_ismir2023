@@ -17,7 +17,7 @@ Data Processing:
 - features averaged across the trimmed soundtracks
 
 Embeddings: 
-- MFCCs (using librosa, 20 bands, delta and delta deltas)
+- MFCCs (using librosa, 20 bands, delta and delta deltas; 60 dimensions)
 - [MSD model](https://github.com/marinelliluca/transformer-based-music-auto-tagging) (256 dimensions)
 - OpenL3 embeddings (512 dimensions).
 
