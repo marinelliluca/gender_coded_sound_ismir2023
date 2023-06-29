@@ -18,7 +18,7 @@ Data Processing:
 
 Embeddings: 
 - MFCCs (using librosa, 20 bands, delta and delta deltas)
-- MSD model (256 dimensions)
+- [MSD model](https://github.com/marinelliluca/transformer-based-music-auto-tagging) (256 dimensions)
 - OpenL3 embeddings (512 dimensions).
 
 Training and evaluation: 
@@ -32,7 +32,3 @@ Multi-task Learning:
 - music perceptual features
 - 4 voice-related classification tasks
 - main classification of the commercials in gender targets.
-
-## Used repositories
-- https://github.com/minzwon/sota-music-tagging-models 
-- https://github.com/marinelliluca/transformer-based-music-auto-tagging
