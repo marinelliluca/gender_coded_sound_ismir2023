@@ -9,6 +9,8 @@ PyTorch implementation of a multi-task model for music-focused critical analysis
 
 ## Summary
 
+![Tasks diagram](https://github.com/marinelliluca/gender_coded_sound_ismir2023/blob/main/tasks_diagram.png)
+
 Data Processing: 
 - Soundtracks trimmed (last 5 seconds removed), 
 - features averaged across the trimmed soundtracks
