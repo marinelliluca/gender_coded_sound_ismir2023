@@ -1,16 +1,13 @@
-# Music Gender Classification in Children's Advertising
-
-License: MIT
+# GENDER-CODED SOUND: ANALYSING THE GENDERING OF MUSIC IN TOY COMMERCIALS VIA MULTI-TASK LEARNING
+## Conference: ISMIR 2023
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 PyTorch implementation of a multi-task learning model for music gender analysis in toy advertising 🎶📺
 
-## Reference
-[Paper title, Journal/Conference, Year, Link - If available]
-
--- [Author names]
+## Authors
+Luca Marinelli, Charalampos Saitis, George Fazekas 
 
 ## Summary
-
 
 Data Processing: 
 - Soundtracks trimmed (last 5 seconds removed), 
