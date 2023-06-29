@@ -5,7 +5,7 @@
 PyTorch implementation of a multi-task learning model for music gender analysis in toy advertising 🎶📺
 
 ## Demo
-[![Open in Colab]](https://colab.researh.google.com/assets/colab-badge.svg)(https://colab.research.google.com/drive/1UMGSIEglIpPHSD2iCOKd72QeLUYEAI2R?usp=sharing)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1UMGSIEglIpPHSD2iCOKd72QeLUYEAI2R?usp=sharing)
 
 ## Authors
 Luca Marinelli, Charalampos Saitis, George Fazekas 
