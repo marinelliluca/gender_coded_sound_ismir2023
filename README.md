@@ -1,9 +1,6 @@
 # GENDER-CODED SOUND: ANALYSING THE GENDERING OF MUSIC IN TOY COMMERCIALS VIA MULTI-TASK LEARNING
-## Conference: ISMIR 2023
+### Luca Marinelli, Charalampos Saitis, George Fazekas, ISMIR 2023
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-## Authors
-Luca Marinelli, Charalampos Saitis, George Fazekas 
 
 PyTorch implementation of a multi-task model for music-focused critical analysis of gender encoding strategies in toy advertising 🎶📺
 
