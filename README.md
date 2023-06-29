@@ -4,10 +4,10 @@
 
 PyTorch implementation of a multi-task model for music-focused critical analysis of gender encoding strategies in toy advertising 🎶📺
 
-## Demo
-<a href="https://colab.research.google.com/drive/1UMGSIEglIpPHSD2iCOKd72QeLUYEAI2R?usp=sharing">
+## Demo <a href="https://colab.research.google.com/drive/1UMGSIEglIpPHSD2iCOKd72QeLUYEAI2R?usp=sharing">
   <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
 </a>
+
 
 ## Summary
 
