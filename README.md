@@ -2,13 +2,13 @@
 ## Conference: ISMIR 2023
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+## Authors
+Luca Marinelli, Charalampos Saitis, George Fazekas 
+
 PyTorch implementation of a multi-task model for music-focused critical analysis of gender encoding strategies in toy advertising 🎶📺
 
 ## Demo
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1UMGSIEglIpPHSD2iCOKd72QeLUYEAI2R?usp=sharing)
-
-## Authors
-Luca Marinelli, Charalampos Saitis, George Fazekas 
 
 ## Summary
 
