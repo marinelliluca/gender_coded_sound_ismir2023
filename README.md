@@ -11,17 +11,17 @@ Luca Marinelli, Charalampos Saitis, George Fazekas
 
 Data Processing: 
 - Soundtracks trimmed (last 5 seconds removed), 
-- features averaged across trimmed soundtrack
+- features averaged across the trimmed soundtracks
 
 Embeddings: 
 - MFCCs (using librosa, 20 bands, delta and delta deltas)
-- MSD model (256 dimensions, re-implementation of \cite{won2019toward})
-- OpenL3 embeddings (512 dimensions, \cite{cramer2019look} conda package).
+- MSD model (256 dimensions)
+- OpenL3 embeddings (512 dimensions).
 
 Training and evaluation: 
 - Model checkpoint
 - early stopping (patience: 30 epochs, max: 200)
-- 5x 5-fold cross-validation
+- 5x 5-fold cross-validation (no random seed)
 - AdamW optimizer
 
 Multi-task Learning: 
