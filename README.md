@@ -30,7 +30,7 @@ Embeddings:
 Training and evaluation: 
 - Model checkpoint
 - early stopping (patience: 30 epochs, max: 200)
-- 5x 5-fold cross-validation (no random seed)
+- 5x (no random seed) 5-fold cross-validation, 0.1 val, 0.1 test 
 - AdamW optimizer
 
 Multi-task Learning: 
