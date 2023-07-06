@@ -1,5 +1,5 @@
 # GENDER-CODED SOUND: Analysing the Gendering of Music in Toy Commercials via Multi-Task Learning
-### Luca Marinelli, Charalampos Saitis, George Fazekas
+### Luca Marinelli, György Fazekas, Charalampos Saitis
 #### Published @ ISMIR 2023
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
